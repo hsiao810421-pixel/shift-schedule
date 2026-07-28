@@ -139,22 +139,111 @@
   .tb-btn:hover { border-color: var(--accent); }
   .tb-danger { color: var(--sun); border-color: rgba(240,89,106,0.3); }
   .tb-danger:hover { border-color: var(--sun); }
+
+  /* ── 分頁切換 ── */
+  .brand { min-width: 0; }
+  .tabs { display: flex; gap: 4px; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 3px; }
+  .tab { background: transparent; border: none; color: var(--text-muted); font-size: 13px; font-weight: 650; padding: 7px 15px; border-radius: 8px; cursor: pointer; transition: .15s; white-space: nowrap; }
+  .tab.active { background: var(--accent); color: #fff; }
+  .tab:not(.active):hover { color: var(--text); }
+
+  /* ── 本日出勤頁 ── */
+  .day-banner { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 15px; padding: 13px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
+  .day-date { font-size: 16px; font-weight: 700; }
+  .day-dow { font-size: 13px; color: var(--text-muted); font-weight: 600; margin-left: 3px; }
+  .mode-badge { font-size: 11px; font-weight: 700; padding: 4px 11px; border-radius: 20px; }
+  .mode-wd { background: rgba(91,156,246,0.16); color: #93c5fd; }
+  .mode-we { background: rgba(240,89,106,0.15); color: #f0596a; }
+  .day-count { margin-left: auto; font-size: 12px; color: var(--text-muted); }
+  .mode-hint { width: 100%; font-size: 11.5px; color: var(--text-muted); line-height: 1.5; }
+  .section { margin-bottom: 18px; }
+  .section-head { display: flex; align-items: center; gap: 8px; margin-bottom: 9px; padding-left: 2px; }
+  .section-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+  .section-title { font-size: 14.5px; font-weight: 700; }
+  .section-n { font-size: 11px; color: var(--text-muted); font-weight: 600; }
+  .duty-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px,1fr)); gap: 8px; }
+  .duty-row { display: flex; align-items: center; gap: 10px; padding: 10px 13px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
+  .duty-area { min-width: 0; }
+  .duty-area .main { font-size: 13px; font-weight: 700; }
+  .duty-area .sub { display: block; font-size: 10.5px; color: var(--text-muted); margin-top: 2px; line-height: 1.3; }
+  .duty-name { margin-left: auto; font-size: 13.5px; font-weight: 650; white-space: nowrap; }
+  .phone-chip { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; padding: 5px 10px; border-radius: 8px; background: var(--surface2); border: 1px solid var(--border); color: var(--accent); text-decoration: none; white-space: nowrap; }
+  .phone-chip:hover { border-color: var(--accent); }
+  .phone-chip.nophone { color: var(--text-muted); }
+  .empty-note { font-size: 12.5px; color: var(--text-muted); padding: 10px 2px; }
+
+  /* ── 個人日詳情面板 ── */
+  .info { background: var(--bg); border: 1px solid var(--border); border-radius: 11px; padding: 13px 14px; margin-bottom: 16px; }
+  .info-top { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+  .info-badge { font-size: 13px; font-weight: 700; padding: 3px 10px; border-radius: 7px; }
+  .info-area { font-size: 13.5px; font-weight: 650; flex: 1; min-width: 0; }
+  .info-phone { margin-left: auto; font-size: 13px; padding: 6px 12px; }
+  .info-row { font-size: 12px; color: var(--text-muted); margin-top: 8px; }
+  .info-row b { color: var(--text); font-weight: 600; margin-right: 4px; }
+  .duty-list { margin: 9px 0 0; padding-left: 18px; font-size: 12px; color: #c7ccdb; line-height: 1.6; }
+  .duty-list li { margin-bottom: 2px; }
+  .info-note { font-size: 11px; color: var(--text-muted); margin-top: 10px; padding-top: 9px; border-top: 1px dashed var(--border); line-height: 1.5; }
+  .edit-head { font-size: 12px; color: var(--text-muted); margin-bottom: 9px; font-weight: 650; letter-spacing: .02em; }
+  /* ── 總表（整科月度大表）── */
+  .master-hint { font-size: 12px; color: var(--text-muted); margin-bottom: 10px; display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  .master-wrap { overflow: auto; border: 1px solid var(--border); border-radius: 12px; max-height: 78vh; -webkit-overflow-scrolling: touch; }
+  table.master { border-collapse: separate; border-spacing: 0; font-size: 11px; width: max-content; }
+  table.master th, table.master td { border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); padding: 4px 6px; text-align: center; white-space: nowrap; height: 26px; }
+  table.master thead th { position: sticky; top: 0; z-index: 3; background: var(--surface2); color: var(--text-muted); font-weight: 700; line-height: 1.15; }
+  table.master thead th small { display:block; font-size: 9px; font-weight: 600; opacity: .85; }
+  th.wk-sun, td.wk-sun-c { }
+  thead th.wk-sun { color: var(--sun); }
+  thead th.wk-sat { color: var(--sat); }
+  .mcol-name { position: sticky; left: 0; z-index: 2; background: var(--surface2); text-align: left; font-weight: 650; min-width: 58px; color: var(--text); }
+  thead .mcol-name { z-index: 4; }
+  table.master tbody td { cursor: pointer; color: var(--text); }
+  table.master tbody td:hover { outline: 2px solid var(--accent); outline-offset: -2px; }
+  tr.m-you .mcol-name { color: var(--accent); }
+  tr.m-you td { background-image: linear-gradient(rgba(91,156,246,0.05),rgba(91,156,246,0.05)); }
+  td.m-edited { box-shadow: inset 0 0 0 1.5px var(--accent); }
+  td.mc-rest  { color: var(--text-muted); background: rgba(118,124,147,0.10); }
+  td.mc-early { background: rgba(52,211,153,0.15); color: #4ade80; }
+  td.mc-eight { background: rgba(45,212,191,0.15); color: #5eead4; }
+  td.mc-small { background: rgba(251,191,36,0.15); color: #fcd34d; }
+  td.mc-big   { background: rgba(167,139,250,0.17); color: #c4b5fd; }
+  td.mc-normal{ background: rgba(91,156,246,0.14); color: #93c5fd; }
+
+  @media (max-width: 640px) {
+    .tab { padding: 7px 11px; font-size: 12px; }
+    .duty-grid { grid-template-columns: 1fr; }
+    table.master { font-size: 10px; }
+    table.master th, table.master td { padding: 3px 4px; }
+    .mcol-name { min-width: 48px; }
+    .master-wrap { max-height: 72vh; }
+  }
 </style>
 </head>
 <body>
 <header>
-  <div>
+  <div class="brand">
     <div class="brand-eyebrow">臺中榮總 · 呼吸治療科</div>
     <div class="brand-title">班表系統</div>
   </div>
-  <div class="header-controls">
+  <div class="tabs">
+    <button class="tab active" id="tabPerson">個人班表</button>
+    <button class="tab" id="tabMaster">總表</button>
+    <button class="tab" id="tabDay">本日出勤</button>
+  </div>
+  <div class="header-controls" id="personControls">
     <button class="nav-btn" id="prevBtn" aria-label="上個月">‹</button>
     <span class="month-label" id="monthLabel"></span>
     <button class="nav-btn" id="nextBtn" aria-label="下個月">›</button>
     <select id="staffSelect" aria-label="選擇同事"></select>
   </div>
+  <div class="header-controls" id="dayControls" hidden>
+    <button class="nav-btn" id="dPrev" aria-label="前一天">‹</button>
+    <span class="month-label" id="dayLabel"></span>
+    <button class="nav-btn" id="dNext" aria-label="後一天">›</button>
+    <button class="tb-btn" id="dToday">今天</button>
+  </div>
 </header>
 <main>
+ <div id="personView">
   <div class="person-card">
     <div class="avatar" id="avatar"></div>
     <div>
@@ -183,11 +272,22 @@
     </span>
     <input type="file" id="importFile" accept="application/json" style="display:none">
   </div>
+ </div>
+ <div id="dayView" hidden>
+   <div class="day-banner" id="dayBanner"></div>
+   <div id="daySections"></div>
+ </div>
+ <div id="masterView" hidden>
+   <div class="master-hint" id="masterHint"></div>
+   <div class="master-wrap"><table class="master" id="masterTable"></table></div>
+ </div>
 </main>
 <div class="overlay" id="overlay">
   <div class="modal">
-    <h3>修改班別</h3>
+    <h3 id="mTitle">班別資訊</h3>
     <div class="sub" id="mSub"></div>
+    <div class="info" id="mInfo"></div>
+    <div class="edit-head">修改班別</div>
     <label>班別代碼</label>
     <input type="text" id="mInput" placeholder="例：PI*、A小、B大、休、A8-4、CVCU*…" autocomplete="off">
     <div class="quick" id="quickBtns"></div>
@@ -371,6 +471,110 @@ function classify(raw) {
   return { type:"normal", label:s, time:"08:00–17:30" };
 }
 
+// ─────────────────────────────────────────────
+//  區域 / 公務機 對照（依 114.05 區域調整表）
+// ─────────────────────────────────────────────
+const PHONE = { A:"1797", B:"1798", C:"1854", D:"1801" };
+
+// 週間白班：各代碼對應獨立分區＋專屬分機
+const AREA = {
+  "I*":   {ord:1,  label:"ICU1*",  area:"ICU1",                      beds:"17 床",     phone:"1797", time:"07:45–16:15", noon:"ICU1、CPT 急會診",
+           duty:["ICU1 常規（含換管、送檢、白班 check 2 次）"]},
+  "I2*":  {ord:2,  label:"ICU2*",  area:"ICU2（8–27）",              beds:"16 床",     phone:"1798", time:"07:45–16:15", noon:"ICU2",
+           duty:["ICU2 常規（含換管、送檢、白班 check 2 次）"]},
+  "I2NS*":{ord:3,  label:"I2NS*",  area:"ICU2（01–07）＋NSCU（21–26）", beds:"12 床",   phone:"1806", time:"07:45–16:15", noon:"I2NS、二醫病人到一醫送檢",
+           duty:["ICU2＋NSCU 常規（含換管、送檢、白班 check 2 次）","機動調派（EX：協助一醫病房、CPT）或特殊交辦事項","協助二醫病人（CU＋病房）到一醫送檢"]},
+  "NS*":  {ord:4,  label:"NSCU*",  area:"NSCU（1–20）",              beds:"18 床",     phone:"1799", time:"07:45–16:15", noon:"NSCU、POR（A.B.C）",
+           duty:["NSCU 常規（含換管、送檢、白班 check 2 次）"]},
+  "CV1*": {ord:5,  label:"CV1*",   area:"CVCU（1–10）＋一醫病房（9–10F）", beds:"9 床＋病房", phone:"1854", time:"07:45–16:15", noon:"CVCU 1–10 床、一醫病房 9–10F、ER",
+           duty:["CVCU 01–10 床常規（含換管、送檢、白班 check 2 次）","一醫病房 9–10F（含換管、送檢）"]},
+  "CVCU*":{ord:6,  label:"CVCU*",  area:"CVCU（11–32）",             beds:"21 床",     phone:"1800", time:"07:45–16:15", noon:"CVCU 11–32 床、RCC、急診病房",
+           duty:["CVCU 11–32 床常規（含換管、送檢、白班 check 2 次）"]},
+  "RI*":  {ord:7,  label:"RICU*",  area:"RICU（01–18）",             beds:"15 床",     phone:"1795", time:"07:45–16:15", noon:"RICU 1–18 床",
+           duty:["RICU 01–18 床常規（含 IMT、換管、二醫送檢、check 2 次）"]},
+  "RI2*": {ord:8,  label:"RI2*",   area:"RICU（19–23）＋W106–116",   beds:"5 床＋病房", phone:"1801", time:"07:45–16:15", noon:"RICU 19–23 床、W106–W116",
+           duty:["RICU 19–23 床常規（含 IMT、換管、二醫送檢、白班 check 2 次）","W106–W116 病房常規（含換管、VibraPEP）","特殊交辦事項"]},
+  "W下*": {ord:9,  label:"W下*",   area:"BICU＋一醫病房（5–8F）",    beds:"BI 6 床＋病房", phone:"1805", time:"07:45–16:15", noon:"一醫病房（5–8F）＋BICU",
+           duty:["一醫病房常規（9–10F 除外，含換管、送檢、VibraPEP）","BICU 常規（含換管、送檢）"]},
+  "PI*":  {ord:10, label:"PICU*",  area:"PICU＋W66–W96",             beds:"15 床＋病房", phone:"1849", time:"07:45–16:15", noon:"PICU、NICU、W66–96",
+           duty:["PICU 常規（含換管、白班 check 2 次）","W66–W96 常規（含換管）","執行肺復原門診（W2、W4）治療（請 NICU cover #1849）","特殊交辦事項"]},
+  "NI":   {ord:11, label:"NICU",   area:"NICU＋SBR",                 beds:"18 床＋SBR", phone:"1812", time:"08:00–17:30", noon:"12:00–13:30 無須值班",
+           duty:["NICU 常規（含換管、白班 check 2 次）","在 PICU 執行肺復原門診（W2、W4）治療期間 cover #1849","周間 16:00–17:30 cover PICU"]},
+  "RCC":  {ord:12, label:"RCC",    area:"RCC＋ER 大樓病房（W33–35）", beds:"12 床＋病房", phone:"1803", time:"08:00–17:30", noon:"12:00–13:30 無須值班",
+           duty:["RCC 常規（含換管、白班 check 2 次）","ER 大樓病房常規（W33–W35）、VibraPEP"]},
+  "F":    {ord:13, label:"F 組",   area:"一醫 6/9/4 樓 呼吸治療儀器室", beds:"",        phone:"1856", time:"08:00–17:30", noon:"12:00–13:30 無須值班",
+           duty:["F 組常規","協助病房組換管"]},
+  "RC2":  {ord:14, label:"RC2",    area:"POR（A.B.C）＋ER（含 601–603）", beds:"",       phone:"1802", time:"08:00–17:30", noon:"12:00–13:30 無須值班",
+           duty:["POR 常規（含重大申請追蹤、超過七天未送再次追蹤）","ER 常規（含 ED1／601–603）","ER 大樓病人（RCC、W33–W35）到一醫的檢查","W33–W35 病人數 > 9 需協助 RCC 同仁"]},
+  "CPT":  {ord:15, label:"CPT",    area:"CPT 會診",                  beds:"",          phone:"1804", time:"08:00–17:30", noon:"12:00–13:30 無須值班",
+           duty:["CPT 會診","CCRT 會診","PERIO＋ERAS，週二 9 點團體衛教","協助病房組換管"]},
+  "清*":  {ord:16, label:"清消*",  area:"清消 / 機動（*班）",        beds:"",          phone:"",     time:"07:45–16:15", noon:"",
+           duty:["清消 / 機動支援"]},
+  "肺*":  {ord:17, label:"肺*",    area:"肺復原門診",                beds:"",          phone:"83159", time:"07:45–16:15", noon:"",
+           duty:["肺復原門診治療"]},
+};
+
+// 夜班 / 假日白班 A~D 分組
+const NIGHT_SMALL = {
+  A:{rec:"ICU1（17）",              cover:"一醫病房（含 9–10F）",             clean:"主要擦機器"},
+  B:{rec:"NSCU（24）＋ICU2（22）",   cover:"ER",                              clean:"主協助擦機器"},
+  C:{rec:"CVCU（30）＋RCC（12）",    cover:"RCC、POR A.B.C、ER 病房",         clean:"協助擦機器"},
+  D:{rec:"RICU（20）",              cover:"二醫病房、NICU（18）、PICU（15）",  clean:"協助擦機器"},
+};
+const NIGHT_BIG = {
+  A:{rec:"ICU1（17）",                        cover:"一醫病房（含 9–10F）、POR A.B.C、NICU（18）、PICU（15）", clean:"主要擦機器"},
+  B:{rec:"NSCU（24）＋ICU2（22）",             cover:"ER 病房、ER",                      clean:"協助擦機器"},
+  C:{rec:"CVCU（30）＋RICU（20）＋RCC（12）",   cover:"二醫病房、RCC",                    clean:"協助擦機器"},
+};
+const HOLIDAY_DAY = {
+  A:{area:"ICU1（17）＋一醫病房（含 9–10F）",              clean:"主要擦機器"},
+  B:{area:"NSCU（24）＋ICU2（22）＋ER",                    clean:"主協助擦機器"},
+  C:{area:"CVCU（30）＋RCC（12）＋POR A.B.C＋ER 病房",     clean:"協助擦機器"},
+  D:{area:"RICU（20）＋二醫病房＋NICU（18）＋PICU（15）",   clean:"協助擦機器"},
+};
+const ACTIVITY = /^(品營日|機器日|儀器日|資訊日|兒醫日|教學日|ACLS)$/;
+
+// 解析單一班別代碼 → 區域 / 公務機 / 職責
+// cat: day｜small｜big｜other｜rest
+function resolveInfo(raw, isWeekend){
+  const s = String(raw==null?"":raw).trim();
+  const base = classify(s);
+  if (s==="" || base.type==="rest")
+    return { cat:"rest", label:s||"—", area:"休假 / 不出勤", phone:"", time:base.time, duty:[], badge:"rest" };
+  let m;
+  if (m = s.match(/^([ABCD])小$/)) {
+    const g=m[1], v=NIGHT_SMALL[g];
+    return { cat:"small", group:g, label:s, area:v.rec, phone:PHONE[g], time:"15:30–24:00", badge:"small",
+             duty:["紀錄區域："+v.rec, "cover："+v.cover, v.clean], noon:"",
+             note:"小夜班同仁需紀錄 1 次。" };
+  }
+  if (m = s.match(/^([ABCD])大$/)) {
+    const g=m[1], v=NIGHT_BIG[g];
+    if(!v) return { cat:"big", group:g, label:s, area:"（無此大夜組別）", phone:"", time:"23:30–08:00", duty:[], badge:"big" };
+    return { cat:"big", group:g, label:s, area:v.rec, phone:PHONE[g], time:"23:30–08:00", badge:"big",
+             duty:["紀錄區域："+v.rec, "cover："+v.cover, v.clean], noon:"",
+             note:"大夜班在呼吸器條件 FiO₂ ≧ 50% 或 PEEP ≧ 10 cmH₂O 時需紀錄 1 次。" };
+  }
+  if (m = s.match(/^([ABCD])\s*8\s*[-－]\s*4$/)) {
+    const g=m[1], v=HOLIDAY_DAY[g];
+    return { cat:"day", group:g, label:s, area:v.area, phone:PHONE[g], time:"07:45–16:15", badge:"eight",
+             duty:["負責區域："+v.area, v.clean], noon:"",
+             note:"假日白班採 A/B/C/D 分組；CU 同仁需紀錄 1 次（白天）。" };
+  }
+  if (AREA[s]) {
+    const a=AREA[s];
+    return { cat:"day", label:a.label, area:a.area, beds:a.beds, phone:a.phone, time:a.time,
+             duty:a.duty.slice(), noon:a.noon, ord:a.ord, badge:base.type,
+             note: a.time.charAt(0)==="0"&&a.time.startsWith("07:45") ? "週間白班 CU 同仁需紀錄 2 次（白天、下午）。" : "" };
+  }
+  if (ACTIVITY.test(s))
+    return { cat:"other", label:s, area:"行政 / 課程", phone:"", time:"08:00–17:30", duty:[], badge:"normal" };
+  return { cat:"other", label:s, area:s, phone:"", time:base.time, duty:[], badge:base.type };
+}
+const phoneChip = (p) => p
+  ? `<a class="phone-chip" href="tel:${p}">☎ #${p}</a>`
+  : `<span class="phone-chip nophone">無公務機</span>`;
+
 const STORE_KEY = "rt_schedule_overrides_v1";
 let overrides = {};
 try { overrides = JSON.parse(localStorage.getItem(STORE_KEY)) || {}; } catch(e) { overrides = {}; }
@@ -437,26 +641,47 @@ function initSelect(){
   STAFF_NAMES.forEach(name=>{const o=document.createElement("option");o.value=name;o.textContent=name;if(name===USER_NAME)o.selected=true;sel.appendChild(o);});
   sel.onchange=()=>{curStaff=sel.value;render();};
 }
-let editDay=null;
+let editDay=null, editStaff=null;
 const QUICK=["休","國","V","例","病","A小","A大","B小","B大","C小","C大","D小","PI*","NS*","CVCU*","RI*","RI2*","I*","I2*","RC2","RCC","A8-4","B8-4","C8-4","D8-4","W下*","F","NI","CV1*","I2NS*"];
-function openModal(d){
-  editDay=d;
-  document.getElementById("mSub").textContent=`${curStaff} · ${curMonth+1}月${d}日`;
+function renderInfoPanel(info){
+  if(info.cat==="rest"){
+    return `<div class="info-top"><span class="info-badge t-rest">${info.label}</span>
+      <span class="info-area">休假 / 不出勤</span></div>`;
+  }
+  let h=`<div class="info-top">
+    <span class="info-badge t-${info.badge}">${info.label}</span>
+    <span class="info-area">${info.area}</span>
+    ${info.phone?`<a class="phone-chip info-phone" href="tel:${info.phone}">☎ #${info.phone}</a>`:''}
+  </div>`;
+  h+=`<div class="info-row"><b>時間</b>${info.time}${info.beds?`　·　${info.beds}`:''}</div>`;
+  if(info.group) h+=`<div class="info-row"><b>組別</b>${info.group} 組（公務機 #${info.phone||"—"}）</div>`;
+  if(info.duty&&info.duty.length) h+=`<ul class="duty-list">${info.duty.map(x=>`<li>${x}</li>`).join("")}</ul>`;
+  if(info.noon) h+=`<div class="info-row"><b>中午值班</b>${info.noon}</div>`;
+  if(info.note) h+=`<div class="info-note">${info.note}</div>`;
+  return h;
+}
+function openModal(d, staff){
+  editDay=d; editStaff=staff||curStaff;
+  const dow=new Date(curYear,curMonth,d).getDay();
+  const isWe=(dow===0||dow===6);
+  document.getElementById("mTitle").textContent=editStaff;
+  document.getElementById("mSub").textContent=`${curMonth+1}月${d}日（週${DOW[dow]}）`;
+  const info=resolveInfo(getShift(editStaff,curYear,curMonth,d),isWe);
+  document.getElementById("mInfo").innerHTML=renderInfoPanel(info);
   const inp=document.getElementById("mInput");
-  inp.value=getShift(curStaff,curYear,curMonth,d);
+  inp.value=getShift(editStaff,curYear,curMonth,d);
   document.getElementById("quickBtns").innerHTML=QUICK.map(q=>`<button data-v="${q}">${q}</button>`).join("");
   document.querySelectorAll("#quickBtns button").forEach(b=>b.onclick=()=>{inp.value=b.dataset.v;});
   document.getElementById("overlay").classList.add("open");
-  setTimeout(()=>inp.focus(),50);
 }
 const closeModal=()=>document.getElementById("overlay").classList.remove("open");
 document.getElementById("mCancel").onclick=closeModal;
-document.getElementById("mSave").onclick=()=>{overrides[keyOf(curStaff,curYear,curMonth,editDay)]=document.getElementById("mInput").value.trim();saveStore();closeModal();renderCalendar();flashSaved();};
-document.getElementById("mReset").onclick=()=>{delete overrides[keyOf(curStaff,curYear,curMonth,editDay)];saveStore();closeModal();renderCalendar();flashSaved();};
+document.getElementById("mSave").onclick=()=>{overrides[keyOf(editStaff,curYear,curMonth,editDay)]=document.getElementById("mInput").value.trim();saveStore();closeModal();renderActive();flashSaved();};
+document.getElementById("mReset").onclick=()=>{delete overrides[keyOf(editStaff,curYear,curMonth,editDay)];saveStore();closeModal();renderActive();flashSaved();};
 document.getElementById("overlay").addEventListener("click",e=>{if(e.target.id==="overlay")closeModal();});
 document.getElementById("mInput").addEventListener("keydown",e=>{if(e.key==="Enter")document.getElementById("mSave").click();});
-document.getElementById("prevBtn").onclick=()=>{if(--curMonth<0){curMonth=11;curYear--;}render();};
-document.getElementById("nextBtn").onclick=()=>{if(++curMonth>11){curMonth=0;curYear++;}render();};
+document.getElementById("prevBtn").onclick=()=>{if(--curMonth<0){curMonth=11;curYear--;}renderActive();};
+document.getElementById("nextBtn").onclick=()=>{if(++curMonth>11){curMonth=0;curYear++;}renderActive();};
 
 function flashSaved(){ const n=document.getElementById("saveNote"); n.textContent="✓ 已儲存"; n.classList.remove("flash"); void n.offsetWidth; n.classList.add("flash"); setTimeout(()=>{n.textContent="✓ 修改會自動儲存於此瀏覽器";},1400); }
 
@@ -473,18 +698,167 @@ document.getElementById("btnImport").onclick=()=>document.getElementById("import
 document.getElementById("importFile").onchange=(e)=>{
   const f=e.target.files[0]; if(!f)return;
   const r=new FileReader();
-  r.onload=()=>{ try{ const data=JSON.parse(r.result); if(typeof data!=="object")throw 0; overrides=data; saveStore(); renderCalendar(); flashSaved(); }catch(err){ alert("匯入失敗：檔案格式不正確。"); } };
+  r.onload=()=>{ try{ const data=JSON.parse(r.result); if(typeof data!=="object")throw 0; overrides=data; saveStore(); renderActive(); flashSaved(); }catch(err){ alert("匯入失敗：檔案格式不正確。"); } };
   r.readAsText(f); e.target.value="";
 };
 // 清除所有修改
 document.getElementById("btnClearAll").onclick=()=>{
   if(Object.keys(overrides).length===0){ alert("目前沒有任何手動修改。"); return; }
   if(confirm("確定要清除所有手動修改，還原成原始班表嗎？此動作無法復原（建議先匯出備份）。")){
-    overrides={}; saveStore(); renderCalendar(); flashSaved();
+    overrides={}; saveStore(); renderActive(); flashSaved();
   }
 };
 
+// ─────────────────────────────────────────────
+//  本日出勤（整科三班區域）
+// ─────────────────────────────────────────────
+let dayDate = new Date(); dayDate.setHours(0,0,0,0);
+function dutyRow(area, sub, name, phone){
+  return `<div class="duty-row">
+    <div class="duty-area"><span class="main">${area}</span>${sub?`<span class="sub">${sub}</span>`:''}</div>
+    <div class="duty-name">${name}</div>
+    ${phoneChip(phone)}
+  </div>`;
+}
+function renderDayView(){
+  const y=dayDate.getFullYear(), mo=dayDate.getMonth(), d=dayDate.getDate(), dow=dayDate.getDay();
+  const isWe=(dow===0||dow===6);
+  const mN=["1月","2月","3月","4月","5月","6月","7月","8月","9月","10月","11月","12月"];
+  document.getElementById("dayLabel").textContent=`${mo+1}/${d}`;
+  const hasData=!!BASE[`${y}-${mo}`];
+
+  // 蒐集當日出勤
+  const buckets={day:[],small:[],big:[],other:[]};
+  STAFF_NAMES.forEach(name=>{
+    const info=resolveInfo(getShift(name,y,mo,d),isWe);
+    if(info.cat==="rest") return;
+    buckets[info.cat].push({name,info});
+  });
+  const skDay=it=>(it.info.group||"")+String(it.info.ord||99).padStart(2,"0")+it.name;
+  const skGrp=it=>(it.info.group||"Z")+it.name;
+  buckets.day.sort((a,b)=>skDay(a)<skDay(b)?-1:1);
+  buckets.small.sort((a,b)=>skGrp(a)<skGrp(b)?-1:1);
+  buckets.big.sort((a,b)=>skGrp(a)<skGrp(b)?-1:1);
+  buckets.other.sort((a,b)=>a.name<b.name?-1:1);
+  const total=buckets.day.length+buckets.small.length+buckets.big.length+buckets.other.length;
+
+  // banner
+  document.getElementById("dayBanner").innerHTML=`
+    <span class="day-date">${y} / ${mo+1} / ${d}</span><span class="day-dow">（週${DOW[dow]}）</span>
+    <span class="mode-badge ${isWe?'mode-we':'mode-wd'}">${isWe?'假日模式 · 白班採 A/B/C/D 分組':'平日模式 · 白班分區'}</span>
+    <span class="day-count">出勤 ${total} 人</span>
+    <span class="mode-hint">${isWe
+      ? '假日白班採 A/B/C/D 分組值班（4 支公務機）；一醫病房小夜/大夜歸 A 組、二醫病房小夜歸 D 組・大夜歸 C 組。'
+      : '平日白班各分區獨立值班；每格顯示分區與公務機分機。'}　※ 國定假日請以「假日模式」為準（本頁以週六日判定）。</span>`;
+
+  if(!hasData){
+    document.getElementById("daySections").innerHTML=`<div class="empty-note">本日尚無官方班表資料（可切換月份或等待更新）。</div>`;
+    return;
+  }
+
+  const sec=(title,color,items,builder)=>{
+    if(!items.length) return "";
+    return `<div class="section">
+      <div class="section-head"><span class="section-dot" style="background:${color}"></span>
+        <span class="section-title">${title}</span><span class="section-n">${items.length} 人</span></div>
+      <div class="duty-grid">${items.map(builder).join("")}</div></div>`;
+  };
+  const dayBuilder=it=>{
+    const i=it.info;
+    const main=i.group?`${i.group} 組`:i.label;
+    return dutyRow(main, i.area, it.name, i.phone);
+  };
+  const nightBuilder=it=>{
+    const i=it.info;
+    return dutyRow(`${i.group} 組`, i.area, it.name, i.phone);
+  };
+  const otherBuilder=it=>dutyRow(it.info.label, it.info.area, it.name, it.info.phone);
+
+  let html="";
+  html+=sec(isWe?"假日白班":"白班","#5b9cf6",buckets.day,dayBuilder);
+  html+=sec("小夜班","#fcd34d",buckets.small,nightBuilder);
+  html+=sec("大夜班","#c4b5fd",buckets.big,nightBuilder);
+  html+=sec("其他（課程 / 機動）","#767c93",buckets.other,otherBuilder);
+  if(!html) html=`<div class="empty-note">本日無出勤人員。</div>`;
+  document.getElementById("daySections").innerHTML=html;
+}
+
+// ─────────────────────────────────────────────
+//  總表（整科月度大表）
+// ─────────────────────────────────────────────
+function renderMaster(){
+  const y=curYear, mo=curMonth, mk=`${y}-${mo}`;
+  const days=new Date(y,mo+1,0).getDate();
+  const hasData=!!BASE[mk];
+  const order = MONTHS[mk] ? MONTHS[mk].staff.map(s=>s.name) : STAFF_NAMES;
+  const today=new Date();
+  const isTodayMonth = today.getFullYear()===y && today.getMonth()===mo;
+
+  document.getElementById("masterHint").innerHTML=
+    `<span>整科月度總表　·　${y} 年 ${mo+1} 月　·　${order.length} 人</span>`+
+    `<span>點任一格可看區域資訊或修改班別；<span style="color:var(--accent)">藍框</span>＝已修改。</span>`;
+
+  if(!hasData){
+    document.getElementById("masterTable").innerHTML=`<tbody><tr><td class="mcol-name">—</td><td style="padding:14px">本月尚無官方班表資料。</td></tr></tbody>`;
+    return;
+  }
+
+  // 表頭
+  let head=`<thead><tr><th class="mcol-name">姓名</th>`;
+  for(let d=1;d<=days;d++){
+    const dow=new Date(y,mo,d).getDay();
+    const cls=dow===0?"wk-sun":dow===6?"wk-sat":"";
+    head+=`<th class="${cls}">${d}<small>${DOW[dow]}</small></th>`;
+  }
+  head+=`</tr></thead>`;
+
+  // 內容
+  let body=`<tbody>`;
+  order.forEach(name=>{
+    const you = name===USER_NAME ? " m-you" : "";
+    body+=`<tr class="${you.trim()}"><th class="mcol-name" title="卡號 ${CARDS[name]||''}">${name}</th>`;
+    for(let d=1;d<=days;d++){
+      const raw=getShift(name,y,mo,d);
+      const {type,label}=classify(raw);
+      const ed=isEdited(name,y,mo,d)?" m-edited":"";
+      body+=`<td class="mc-${type}${ed}" onclick="openModal(${d},'${name.replace(/'/g,"\\'")}')">${label==="—"?"":label}</td>`;
+    }
+    body+=`</tr>`;
+  });
+  body+=`</tbody>`;
+  document.getElementById("masterTable").innerHTML=head+body;
+}
+
+// ── 分頁切換 ──
+let view="person";
+function setView(v){
+  view=v;
+  document.getElementById("tabPerson").classList.toggle("active",v==="person");
+  document.getElementById("tabMaster").classList.toggle("active",v==="master");
+  document.getElementById("tabDay").classList.toggle("active",v==="day");
+  document.getElementById("personView").hidden=v!=="person";
+  document.getElementById("masterView").hidden=v!=="master";
+  document.getElementById("dayView").hidden=v!=="day";
+  // 控制列：月份導覽於「個人／總表」共用；同事下拉僅個人頁
+  document.getElementById("personControls").hidden=(v==="day");
+  document.getElementById("staffSelect").style.display=(v==="person")?"":"none";
+  document.getElementById("dayControls").hidden=(v!=="day");
+  renderActive();
+}
+document.getElementById("tabPerson").onclick=()=>setView("person");
+document.getElementById("tabMaster").onclick=()=>setView("master");
+document.getElementById("tabDay").onclick=()=>setView("day");
+document.getElementById("dPrev").onclick=()=>{dayDate.setDate(dayDate.getDate()-1);renderDayView();};
+document.getElementById("dNext").onclick=()=>{dayDate.setDate(dayDate.getDate()+1);renderDayView();};
+document.getElementById("dToday").onclick=()=>{dayDate=new Date();dayDate.setHours(0,0,0,0);renderDayView();};
+
 function render(){renderPerson();renderCalendar();}
+function renderActive(){
+  renderPerson(); // 同步月份標籤與個人卡片
+  if(view==="master") renderMaster();
+  else if(view==="day") renderDayView();
+  else renderCalendar();
+}
 renderDOW();initSelect();render();
 </script>
 </body>
