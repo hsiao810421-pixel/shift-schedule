@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0e1015">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%235b9cf6'/%3E%3Ctext x='16' y='22' font-size='17' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='bold'%3E班%3C/text%3E%3C/svg%3E">
+<title>呼吸治療科 · 班表系統</title>
+<style>
+  :root {
+    --bg: #0e1015;
+    --surface: #181b24;
+    --surface2: #20242f;
+    --border: #2c3142;
+    --accent: #5b9cf6;
+    --text: #e9ebf2;
+    --text-muted: #767c93;
+    --sun: #f0596a;
+    --sat: #5b9cf6;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', 'PingFang TC', 'Microsoft JhengHei', 'Noto Sans TC', sans-serif;
+    min-height: 100vh;
+  }
+  header {
+    background: linear-gradient(120deg, #12141c 0%, #1a1d28 60%, #14182a 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 20px 13px;
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    position: sticky; top: 0; z-index: 100; backdrop-filter: blur(10px);
+  }
+  .brand-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 0.16em; color: var(--accent); text-transform: uppercase; opacity: 0.9; }
+  .brand-title { font-size: 17px; font-weight: 600; margin-top: 1px; }
+  .header-controls { margin-left: auto; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  select {
+    background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+    padding: 8px 30px 8px 12px; border-radius: 9px; font-size: 14px; cursor: pointer;
+    appearance: none; min-width: 120px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12'%3E%3Cpath fill='%23767c93' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 11px center;
+  }
+  select:focus { outline: none; border-color: var(--accent); }
+  .nav-btn {
+    background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+    width: 34px; height: 34px; border-radius: 8px; cursor: pointer; font-size: 17px;
+    display: flex; align-items: center; justify-content: center; transition: background .15s;
+  }
+  .nav-btn:hover { background: var(--border); }
+  .month-label { font-size: 15px; font-weight: 600; min-width: 96px; text-align: center; }
+  main { padding: 18px 14px 48px; max-width: 1120px; margin: 0 auto; }
+  .person-card {
+    display: flex; align-items: center; gap: 13px; margin-bottom: 16px;
+    padding: 13px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+  }
+  .avatar {
+    width: 42px; height: 42px; border-radius: 12px; flex-shrink: 0;
+    background: linear-gradient(135deg, #5b9cf6, #8b5cf6);
+    display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 700;
+  }
+  .person-name { font-size: 17px; font-weight: 650; }
+  .person-meta { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .stats { margin-left: auto; display: flex; gap: 7px; flex-wrap: wrap; }
+  .chip { padding: 4px 11px; border-radius: 20px; font-size: 11px; font-weight: 650; }
+  .legend {
+    display: flex; flex-wrap: wrap; gap: 7px 14px; margin-bottom: 16px;
+    padding: 11px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+  }
+  .legend-item { display: flex; align-items: center; gap: 7px; font-size: 11.5px; color: var(--text-muted); }
+  .legend-dot { width: 11px; height: 11px; border-radius: 4px; }
+  .cal-header { display: grid; grid-template-columns: repeat(7,1fr); gap: 5px; margin-bottom: 5px; }
+  .dow { text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; padding: 7px 0; border-radius: 7px; }
+  .dow.sun { color: var(--sun); background: rgba(240,89,106,0.09); }
+  .dow.sat { color: var(--sat); background: rgba(91,156,246,0.09); }
+  .dow.wd { color: var(--text-muted); }
+  .cal-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 5px; }
+  .cell {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 11px;
+    min-height: 92px; padding: 7px 8px 8px; cursor: pointer; position: relative;
+    display: flex; flex-direction: column; transition: border-color .15s, transform .1s;
+  }
+  .cell:hover { border-color: var(--accent); transform: translateY(-1px); }
+  .cell.empty { background: transparent; border-color: transparent; cursor: default; }
+  .cell.empty:hover { transform: none; }
+  .cell.today { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .cell.sun-c { border-top: 2px solid rgba(240,89,106,0.4); }
+  .cell.sat-c { border-top: 2px solid rgba(91,156,246,0.4); }
+  .c-date { font-size: 13px; font-weight: 650; color: var(--text-muted); margin-bottom: 6px; }
+  .cell.sun-c .c-date { color: var(--sun); }
+  .cell.sat-c .c-date { color: var(--sat); }
+  .cell.today .c-date { color: var(--accent); }
+  .badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 3px 8px; border-radius: 7px; font-size: 12.5px; font-weight: 700;
+    margin-bottom: 4px; max-width: 100%; word-break: break-all; line-height: 1.25;
+  }
+  .c-time { font-size: 10px; color: var(--text-muted); margin-top: auto; line-height: 1.35; }
+  .edited-dot { position: absolute; top: 7px; right: 8px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+  .t-rest   { background: rgba(118,124,147,0.18); color: #aeb4c8; }
+  .t-early  { background: rgba(52,211,153,0.16); color: #4ade80; }
+  .t-eight  { background: rgba(45,212,191,0.16); color: #5eead4; }
+  .t-small  { background: rgba(251,191,36,0.16); color: #fcd34d; }
+  .t-big    { background: rgba(167,139,250,0.18); color: #c4b5fd; }
+  .t-normal { background: rgba(91,156,246,0.16); color: #93c5fd; }
+  .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.72); z-index: 200; align-items: center; justify-content: center; backdrop-filter: blur(4px); padding: 16px; }
+  .overlay.open { display: flex; }
+  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 22px; width: 360px; max-width: 100%; box-shadow: 0 24px 70px rgba(0,0,0,0.55); }
+  .modal h3 { font-size: 15px; margin-bottom: 4px; }
+  .modal .sub { font-size: 12px; color: var(--text-muted); margin-bottom: 16px; }
+  .modal label { font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 5px; }
+  .modal input { width: 100%; margin-bottom: 14px; padding: 9px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 9px; color: var(--text); font-size: 14px; }
+  .modal input:focus { outline: none; border-color: var(--accent); }
+  .quick { display: flex; flex-wrap: wrap; gap: 6px; margin: -6px 0 16px; max-height: 110px; overflow-y: auto; }
+  .quick button { background: var(--surface2); border: 1px solid var(--border); color: var(--text); font-size: 12px; padding: 5px 9px; border-radius: 7px; cursor: pointer; }
+  .quick button:hover { border-color: var(--accent); }
+  .btns { display: flex; gap: 8px; justify-content: flex-end; align-items: center; }
+  .btn { padding: 9px 18px; border-radius: 9px; font-size: 13px; font-weight: 650; cursor: pointer; border: none; transition: opacity .15s; }
+  .btn:hover { opacity: .85; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-ghost { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+  .btn-reset { background: rgba(240,89,106,0.15); color: var(--sun); border: 1px solid rgba(240,89,106,0.3); margin-right: auto; }
+  @media (max-width: 640px) {
+    .cell { min-height: 64px; padding: 5px 5px 6px; border-radius: 9px; }
+    .badge { font-size: 10.5px; padding: 2px 5px; }
+    .c-time { display: none; }
+    .stats { display: none; }
+    .header-controls { width: 100%; justify-content: space-between; }
+  }
+  .toolbar { margin-top: 16px; padding: 12px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .save-note { font-size: 12px; color: #4ade80; font-weight: 600; }
+  .data-note { font-size: 12px; color: var(--text-muted); }
+  .save-note.flash { animation: flash .9s ease; }
+  @keyframes flash { 0%{color:#5b9cf6;transform:scale(1.04);} 100%{color:#4ade80;transform:scale(1);} }
+  .tb-actions { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+  .tb-btn { background: var(--surface2); border: 1px solid var(--border); color: var(--text); font-size: 12px; padding: 7px 13px; border-radius: 8px; cursor: pointer; transition: border-color .15s; }
+  .tb-btn:hover { border-color: var(--accent); }
+  .tb-danger { color: var(--sun); border-color: rgba(240,89,106,0.3); }
+  .tb-danger:hover { border-color: var(--sun); }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <div class="brand-eyebrow">臺中榮總 · 呼吸治療科</div>
+    <div class="brand-title">班表系統</div>
+  </div>
+  <div class="header-controls">
+    <button class="nav-btn" id="prevBtn" aria-label="上個月">‹</button>
+    <span class="month-label" id="monthLabel"></span>
+    <button class="nav-btn" id="nextBtn" aria-label="下個月">›</button>
+    <select id="staffSelect" aria-label="選擇同事"></select>
+  </div>
+</header>
+<main>
+  <div class="person-card">
+    <div class="avatar" id="avatar"></div>
+    <div>
+      <div class="person-name" id="pName"></div>
+      <div class="person-meta" id="pMeta"></div>
+    </div>
+    <div class="stats" id="stats"></div>
+  </div>
+  <div class="legend">
+    <div class="legend-item"><span class="legend-dot" style="background:#4ade80"></span>早班 / *號 07:45–16:15</div>
+    <div class="legend-item"><span class="legend-dot" style="background:#5eead4"></span>8-4班 07:45–16:15</div>
+    <div class="legend-item"><span class="legend-dot" style="background:#93c5fd"></span>白班 08:00–17:30</div>
+    <div class="legend-item"><span class="legend-dot" style="background:#fcd34d"></span>小夜（小）15:30–24:00</div>
+    <div class="legend-item"><span class="legend-dot" style="background:#c4b5fd"></span>大夜（大）23:30–08:00</div>
+    <div class="legend-item"><span class="legend-dot" style="background:#aeb4c8"></span>休 / 國 / V / 例 / 病</div>
+  </div>
+  <div class="cal-header" id="calHeader"></div>
+  <div class="cal-grid" id="calGrid"></div>
+  <div class="toolbar" id="toolbar">
+    <span class="save-note" id="saveNote">✓ 修改會自動儲存於此瀏覽器</span>
+    <span class="data-note" id="dataNote">官方班表資料：2026年6月</span>
+    <span class="tb-actions">
+      <button class="tb-btn" id="btnExport">匯出備份</button>
+      <button class="tb-btn" id="btnImport">匯入備份</button>
+      <button class="tb-btn tb-danger" id="btnClearAll">清除所有修改</button>
+    </span>
+    <input type="file" id="importFile" accept="application/json" style="display:none">
+  </div>
+</main>
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h3>修改班別</h3>
+    <div class="sub" id="mSub"></div>
+    <label>班別代碼</label>
+    <input type="text" id="mInput" placeholder="例：PI*、A小、B大、休、A8-4、CVCU*…" autocomplete="off">
+    <div class="quick" id="quickBtns"></div>
+    <div class="btns">
+      <button class="btn btn-reset" id="mReset">還原原班</button>
+      <button class="btn btn-ghost" id="mCancel">取消</button>
+      <button class="btn btn-primary" id="mSave">儲存</button>
+    </div>
+  </div>
+</div>
+<script>
+const USER_NAME = "蕭傳威";
+
+// 卡號對照（所有出現過的人員）
+const CARDS = {
+  "陳正美":"A869","卓瓊美":"4954","李泓緯":"I763","江佳澤":"H937","李奕昕":"H650",
+  "黃培琦":"D951","何羿侖":"H129","陳曉倩":"2489","蕭靜雅":"4955","黃子庭":"A679",
+  "郭佩蓉":"F208","游慈瑄":"I837","蕭傳威":"H346","潘哲緯":"G015","詹鈞媛":"G016",
+  "徐桂芳":"4160","黃姿穎":"I353","陳姿勻":"G270","李佩雅":"E511","藍子晴":"J501",
+  "李靜怡":"4710","巫禹呈":"H343","許純怡":"B215","王淑惠":"1649","洪逸慈":"G319",
+  "張維倫":"E601","張茹昀":"F851","劉秀英":"6313","陳家榛":"A594","李曼瑄":"G630",
+  "楊惠喬":"6437","程清福":"2886","傅偉菱":"B011","鄭雅華":"A226"
+};
+
+// 各月班表。key = "YYYY-M"（M 為 0-indexed 月份）。每人 d 陣列＝該月每日班別。
+const MONTHS = {
+  // ── 2026 年 6 月（民國115年6月）30 天，6/1 為星期一 ──
+  "2026-5": {
+    days: 30,
+    staff: [
+      {name:"陳正美", d:["RC2","RC2","休","休","公","休","休","D小","D小","D小","D小","D小","休","休","PI*","PI*","品營日","PI*","C8-4","補休","休","V","V","V","V","V","休","休","W下*","I2NS*"]},
+      {name:"卓瓊美", d:["V","V","V","V","V","休","休","休","C小","C小","C小","C大","C大","C大","休","休","機器日","V","D8-4","休","休","PI*","PI*","PI*","PI*","PI*","休","休","I2*","I2*"]},
+      {name:"李泓緯", d:["NI","NI","NI","NI","NI","例4","休4","RI2*","例1","A小","A小","A小","C小","C小","A大","休1","例2","V","國","休2","例3","I2NS*","I2NS*","I2NS*","I2NS*","I2NS*","休3","例4","CPT","CPT"]},
+      {name:"江佳澤", d:["RCC","RCC","RCC","RCC","RCC","例4","休4","RCC","RCC","例1","B小","B小","B小","B大","B大","B大","休1","例2","國","休2","例3","RCC","RCC","RCC","RCC","RCC","休3","例4","RCC","RCC"]},
+      {name:"李奕昕", d:["C大","C大","例3","休3","例4","休4","A大","A大","A大","A大","例1","C小","A大","A大","C大","C大","C大","例2","國","C小","C大","C大","C大","休1","休2","V","例3","休3","B大","B大"]},
+      {name:"黃培琦", d:["F","D小","D小","D小","D小","D小","D小","休","V","休","休","休","A小","A小","A小","A大","A大","A大","休","休","休","RI2*","RI2*","RI2*","RI2*","RI2*","休","休","PI*","PI*"]},
+      {name:"何羿侖", d:["RI*","RI*","RI*","RI*","RI*","休4","國","NI","NI","NI","NI","NI","例1","B小","B小","B小","B大","B大","B大","休1","例2","W下*","W下*","W下*","休2","例3","D8-4","D8-4","休3","RC2"]},
+      {name:"陳曉倩", d:["CPT","CPT","CPT","CPT","休","休","休","RC2","RC2","休","休","F","D小","休","D小","D小","D小","D小","D小","休","休","I*","I*","I*","I*","I*","C8-4","C8-4","休","F"]},
+      {name:"蕭靜雅", d:["CVCU*","CVCU*","CVCU*","V","I*","A8-4","A8-4","NS*","休","RC2","RC2","休","休","休","C小","C小","C小","C大","C大","C大","休","休","I2*","I2*","I2*","I2*","休","休","I2NS*","休"]},
+      {name:"黃子庭", d:["休","NS*","NS*","NS*","NS*","休","休","I*","I*","I*","I*","I*","休","休","休","A小","A小","A小","A大","休","V","V","V","休","W下*","W下*","休","休","CVCU*","CVCU*"]},
+      {name:"郭佩蓉", d:["休4","B小","B小","B小","B大","B大","B大","例1","休1","RCC","RCC","RCC","例2","休2","RCC","RCC","RCC","RCC","V","國","例3","V","V","F","F","休3","B8-4","B8-4","NS*","NS*"]},
+      {name:"游慈瑄", d:["F","F","F","例4","W下*","B8-4","休4","國","NS*","NS*","NS*","NS*","例1","休1","I2NS*","I2NS*","例2","C小","C小","休2","例3","RI*","RI*","RI*","RI*","RI*","休3","例4","I*","I*"]},
+      {name:"蕭傳威", d:["PI*","PI*","PI*","PI*","PI*","例4","休4","W下*","W下*","W下*","國","RI*","例1","休1","CVCU*","CVCU*","CVCU*","例2","A小","A小","A小","A大","A大","A大","休2","例3","A8-4","A8-4","休3","資訊日"]},
+      {name:"潘哲緯", d:["例4","休4","V","F","F","D8-4","D8-4","國","RI2*","RI2*","RI2*","RI2*","例1","休1","CV1*","CV1*","CV1*","CV1*","例2","B小","B小","B小","B小","B小","B小","休2","例3","休3","RI*","RI*"]},
+      {name:"詹鈞媛", d:["休3","例4","RI2*","RI2*","RI2*","休4","國","I2*","I2*","I2*","I2*","I2*","例1","休1","NS*","NS*","NS*","NS*","例2","A大","A大","休2","B大","B大","B大","B大","B大","B大","例3","休3"]},
+      {name:"徐桂芳", d:["B大","休","休","CVCU*","CVCU*","休","補休","休","休","休","CPT","CPT","D8-4","D小","休","CPT","CPT","V","V","V","C小","C小","C小","C大","C大","C大","A大","休","休","CV1*"]},
+      {name:"黃姿穎", d:["D小","例3","休3","I2NS*","I2NS*","例4","休4","PI*","PI*","PI*","PI*","PI*","例1","休1","I*","I*","I*","I*","國","例2","休2","A小","A小","A小","A大","A大","例3","休3","RI2*","RI2*"]},
+      {name:"陳姿勻", d:["RI2*","RI2*","休3","RC2","RC2","例4","休4","RI*","RI*","RI*","RI*","例1","A8-4","A8-4","例2","清*","清*","CPT","國","D小","D小","D小","D小","D小","D小","D小","休1","休2","例3","休3"]},
+      {name:"李佩雅", d:["A大","A大","A大","休3","例4","休4","國","CPT","CPT","CPT","複檢/補休","RC2","例1","休1","NI","NI","NI","NI","例2","C8-4","C8-4","休2","例3","休3","C小","C小","C大","C大","C大","A大"]},
+      {name:"藍子晴", d:["B小","B大","B大","B大","休3","例4","休4","I2NS*","I2NS*","I2NS*","I2NS*","I2NS*","例1","D8-4","F","F","F","F","國","例2","A8-4","I2*","休1","C小","A小","A小","A小","A大","A大","休2"]},
+      {name:"李靜怡", d:["C小","C小","C大","C大","C大","休","休","V","V","V","V","V","休","休","I2*","I2*","I2*","I2*","B8-4","休","休","RC2","休","休","休","B小","B小","B小","B小","B小"]},
+      {name:"巫禹呈", d:["A小","A小","A小","A大","A大","A大","休4","CVCU*","CVCU*","CVCU*","CVCU*","CVCU*","例1","休1","RI2*","RI2*","RI2*","RI2*","例2","休2","例3","F","F","V","國","RC2","D小","D小","D小","D小"]},
+      {name:"許純怡", d:["I2NS*","I2NS*","I2NS*","休","B小","B小","B小","B大","B大","B大","休","休","休","休","W下*","W下*","V","V","V","V","休","CPT","CPT","休","休","休","C小","C小","C小","C大"]},
+      {name:"王淑惠", d:["休","休","RC2","休","CPT","C8-4","C8-4","休","休","F","F","休","B8-4","B8-4","休","休","W下*","W下*","V","V","V","NI","NI","NI","NI","NI","休","A小","A小","A小"]},
+      {name:"洪逸慈", d:["NS*","休4","C小","C小","C小","C大","C大","C大","例1","休1","W下*","W下*","C8-4","C8-4","例2","清*","清*","RC2","國","休2","例3","CV1*","CV1*","CV1*","CV1*","休3","例4","NI","NI","NI"]},
+      {name:"張維倫", d:["W下*","例4","休4","A小","A小","A小","A小","A小","A小","例1","休1","V","例2","休2","CPT","教學日","PI*","CVCU*","國","例3","休3","NS*","NS*","NS*","NS*","NS*","例4","休4","V","C小"]},
+      {name:"張茹昀", d:["例3","W下*","W下*","W下*","休3","例4","休4","CV1*","CV1*","CV1*","CV1*","CV1*","例1","休1","RC2","例2","B小","B小","B小","B大","B大","B大","休2","例3","國","F","休3","例4","RC2","休4"]},
+      {name:"劉秀英", d:["I*","I*","I*","I*","休","C小","C小","C小","C大","C大","C大","V","V","V","休","RC2","RC2","休","休","D8-4","D8-4","休","休","CPT","CPT","CPT","休","休","CV1*","休"]},
+      {name:"陳家榛", d:["CV1*","CV1*","CV1*","CV1*","CV1*","休","B8-4","F","F","V","A大","A大","休","休","RI*","RI*","RI*","RI*","休","B8-4","B8-4","休","RC2","RC2","RC2","休","休","休","F","休"]},
+      {name:"李曼瑄", d:["I2*","I2*","I2*","I2*","I2*","休4","國","B小","B小","B小","B大","B大","B大","例1","休1","V","I2NS*","I2NS*","A8-4","A8-4","例2","CVCU*","CVCU*","CVCU*","CVCU*","CVCU*","休2","例3","休3","W下*"]},
+      {name:"程清福", d:["病","病","病","病","病","休","休","病","病","病","病","病","休","休","病","病","病","病","休","休","休","病","病","病","病","病","休","休","病","病"]},
+    ]
+  },
+  // ── 2026 年 7 月（民國115年7月）31 天，7/1 為星期三 ──
+  "2026-6": {
+    days: 31,
+    staff: [
+      {name:"陳正美", d:["V","V","A小","A小","A小","A大","A大","A大","休","休","休","I*","I*","I*","I*","I*","休","休","W下*","W下*","V","複檢/補休","PI*","休","休","I2NS*","I2NS*","休","C小","C小","C小"]},
+      {name:"卓瓊美", d:["I2*","I2*","V","V","V","A小","A小","A小","A大","A大","A大","休","休","F","儀器日","F","休","休","RI2*","儀器日","休","休","RC2","ACLS","休","RC2","V","V","休","A小","A小"]},
+      {name:"李泓緯", d:["CPT","CPT","休4","補","F","C小","C小","C大","C大","例1","休1","F","休2","CV1*","CV1*","CV1*","A8-4","A8-4","例2","清*","清*","RI*","RI*","例3","休3","F","F","F","休4","例4","例4"]},
+      {name:"江佳澤", d:["W下*","W下*","休4","B小","B小","B小","B大","B大","B大","例1","休1","CV1*","CV1*","休2","F","RI2*","B8-4","B8-4","例2","RI2*","RI2*","RI2*","RI2*","例3","休3","CPT","CPT","CPT","休4","例4","例4"]},
+      {name:"李奕昕", d:["例4","休4","C8-4","C8-4","C小","例1","B小","B小","B小","B大","B大","B大","例2","C小","C小","C小","例3","休1","CV1*","C小","C小","C小","休2","休3","例4","B小","B小","B小","B小","B小","B小"]},
+      {name:"黃培琦", d:["PI*","V","V","V","V","V","D小","D小","D小","D小","D小","D小","休","休","休","休","C8-4","C8-4","休","清*","清*","RC2","休","休","休","I2*","I2*","I2*","I2*","I2*","I2*"]},
+      {name:"何羿侖", d:["RC2","RC2","例4","休4","I2NS*","V","例1","RCC","C小","C小","C小","C小","C小","例2","休1","CPT","休2","例3","NS*","NS*","NS*","NS*","NS*","B8-4","休3","I*","I*","I*","I*","I*","I*"]},
+      {name:"陳曉倩", d:["RCC","休","A8-4","A8-4","RCC","RCC","RCC","休","RCC","A小","A小","A大","A大","A大","休","休","休","休","RCC","RCC","RCC","RCC","休","ACLS","休","RCC","病1","病2","病3","病4","病4"]},
+      {name:"蕭靜雅", d:["RI2*","RI2*","休","休","休","RC2","RC2","RC2","RC2","休","休","RCC","RCC","RCC","RCC","V","V","V","CVCU*","CVCU*","CVCU*","CVCU*","CVCU*","休","休","休","複檢/補休","RI2*","RI2*","RI2*","RI2*"]},
+      {name:"黃子庭", d:["CVCU*","CVCU*","休","休","RI*","RI*","RI*","RI*","RI*","休","V","V","V","V","V","V","V","V","RC2","RC2","RC2","休","休","休","B8-4","NS*","休","休","CPT","CPT","CPT"]},
+      {name:"郭佩蓉", d:["NS*","NS*","例4","休4","CVCU*","CVCU*","CVCU*","CVCU*","CVCU*","休1","例1","A小","A小","A小","A大","A大","A大","例2","休2","休3","W下*","W下*","W下*","A8-4","A8-4","例3","RC2","RC2","RC2","RC2","RC2"]},
+      {name:"游慈瑄", d:["I*","I*","例4","休4","V","V","V","V","V","例1","休1","例2","B小","B小","B小","B大","B大","B大","休2","休3","F","F","F","D8-4","D8-4","例3","RCC","RCC","RCC","RCC","RCC"]},
+      {name:"蕭傳威", d:["I2NS*","I2NS*","I2NS*","例4","休4","NS*","NS*","NS*","NS*","NS*","例1","休1","休2","F","D小","D小","D小","D小","D小","例2","CV1*","CV1*","CV1*","CV1*","例3","休3","RI*","RI*","RI*","RI*","RI*"]},
+      {name:"潘哲緯", d:["RI*","RI*","例4","休4","W下*","W下*","W下*","例1","V","C8-4","C8-4","CPT","休1","V","PI*","PI*","C小","C小","C小","例2","休2","V","V","例3","休3","NI","NI","NI","NI","NI","NI"]},
+      {name:"詹鈞媛", d:["F","F","例4","休4","RI2*","V","PI*","PI*","PI*","例1","休1","CVCU*","CVCU*","CVCU*","CVCU*","休2","例2","A大","A大","A大","A大","A大","A大","例3","休3","W下*","W下*","W下*","W下*","W下*","W下*"]},
+      {name:"徐桂芳", d:["CV1*","CV1*","休","休","PI*","PI*","兒醫日","V","V","休","休","PI*","PI*","PI*","休","B小","B小","B小","B大","B大","B大","休","休","ACLS","休","PI*","PI*","PI*","PI*","PI*","PI*"]},
+      {name:"黃姿穎", d:["例4","休4","D8-4","D8-4","例1","I2NS*","I2NS*","I2NS*","I2NS*","C大","休1","例2","B大","B大","B大","休2","C大","C大","C大","C大","C大","C大","例3","休3","例4","C大","C大","C大","C大","C大","C大"]},
+      {name:"陳姿勻", d:["休4","V","B8-4","B8-4","例1","F","F","休1","例2","B小","B小","B小","D小","休2","A小","A小","A小","A小","A小","A小","例3","休3","C小","C小","C小","C小","C小","C小","例4","休4","休4"]},
+      {name:"李佩雅", d:["NI","NI","休4","V","CPT","CPT","CPT","C小","A小","例1","休1","NS*","NS*","NS*","V","CVCU*","例2","休2","B小","B小","B小","B大","B大","B大","例3","休3","V","V","V","V","V"]},
+      {name:"藍子晴", d:["休3","RCC","例4","休4","NI","NI","NI","NI","NI","例1","休1","RC2","RC2","公","公","RCC","例2","休2","D小","D小","D小","D小","D小","D小","例3","休3","NS*","NS*","NS*","NS*","NS*"]},
+      {name:"李靜怡", d:["休","休","休","休","I*","I*","I*","I*","I*","休","休","RI2*","RI2*","RI2*","RI2*","休","V","V","V","CPT","CPT","CPT","C大","C大","C大","休","複檢/補休","I2NS*","I2NS*","I2NS*","I2NS*"]},
+      {name:"巫禹呈", d:["例4","PI*","休3","休4","CV1*","CV1*","CV1*","CV1*","CV1*","D8-4","D8-4","例1","CPT","CPT","CPT","休1","D8-4","D8-4","NI","例2","A小","A小","A小","A大","A大","A大","例3","休2","休3","V","V"]},
+      {name:"許純怡", d:["C大","休","休","休","I2*","I2*","I2*","I2*","I2*","A8-4","休","休","W下*","W下*","W下*","W下*","休","休","F","F","休","B小","B小","B小","B大","B大","B大","V","V","F","F"]},
+      {name:"王淑惠", d:["A大","A大","休","休","RC2","補休","補休","CPT","CPT","休","休","W下*","休","RC2","RC2","RC2","休","休","I2*","I2*","I2*","休","CPT","補休","補休","RI2*","RI2*","V","F","V","V"]},
+      {name:"洪逸慈", d:["休4","C小","C小","C小","例1","RI2*","RI2*","RI2*","RI2*","休1","例2","RI*","RI*","RI*","RI*","RI*","休2","例3","PI*","PI*","PI*","PI*","休3","A小","A小","A小","A大","A大","A大","例4","例4"]},
+      {name:"張維倫", d:["C小","C大","C大","C大","例1","休1","教學日","F","F","例2","A8-4","NI","休2","I2NS*","I2NS*","I2NS*","公","休3","I*","I*","I*","I*","I*","例3","C8-4","CV1*","CV1*","CV1*","CV1*","CV1*","CV1*"]},
+      {name:"張茹昀", d:["A小","A小","A大","A大","A大","例1","休1","V","V","B8-4","B8-4","例2","NI","NI","NI","NI","休2","例3","I2NS*","I2NS*","I2NS*","I2NS*","I2NS*","例4","D小","D小","D小","D小","D小","D小","D小"]},
+      {name:"劉秀英", d:["B小","B小","B小","B大","B大","B大","V","V","V","休","休","I2*","I2*","I2*","I2*","I2*","休","休","休","NI","NI","NI","NI","休","休","CVCU*","CVCU*","CVCU*","CVCU*","CVCU*","CVCU*"]},
+      {name:"陳家榛", d:["D小","D小","D小","D小","D小","D小","休","W下*","W下*","休","休","I2NS*","I2NS*","休","NS*","NS*","休","休","RI*","RI*","RI*","休","RCC","V","V","V","A小","A小","A小","A大","A大"]},
+      {name:"李曼瑄", d:["B大","B大","B大","例4","C大","C大","C大","例1","休1","例2","C大","C大","C大","C大","C大","C大","例3","休2","CPT","休3","V","I2*","I2*","C8-4","B小","例4","休4","B大","B大","B大","B大"]},
+      {name:"楊惠喬", d:["L","L","休","休","L","L","L","L","L","休","休","L","L","L","L","L","休","休","L","L","L","L","L","休","休","L","L","L","L","L","L"]},
+      {name:"程清福", d:["延病","延病","休","休","延病","延病","延病","延病","延病","休","休","延病","延病","延病","延病","延病","休","休","延病","延病","延病","延病","延病","休","休","延病","延病","延病","延病","延病","延病"]},
+      {name:"傅偉菱", d:["肺*","肺*","例4","休4","肺*","肺*","肺*","肺*","肺*","例1","休1","肺*","肺*","肺*","肺*","肺*","例2","休2","肺*","肺*","肺*","肺*","肺*","ACLS","例3","肺*","肺*","休3","V","V","V"]},
+      {name:"鄭雅華", d:["肺*","肺*","休","休","肺*","肺*","V","V","V","休","休","肺*","肺*","肺*","肺*","肺*","休","休","肺*","肺*","肺*","肺*","肺*","休","休","肺*","肺*","肺*","肺*","肺*","肺*"]},
+    ]
+  },
+  // ── 2026 年 8 月（民國115年8月）31 天，8/1 為星期六 ──
+  "2026-7": {
+    days: 31,
+    staff: [
+      {name:"陳正美", d:["C小","C小","C小","C小","休","休","休","B8-4","B8-4","NI","NI","NI","NI","NI","休","休","CV1*","CV1*","CV1*","CV1*","休","休","休","A小","A小","A小","A小","A小","A小","休","休"]},
+      {name:"卓瓊美", d:["A小","A小","A大","A大","A大","休","休","休","休","CPT","CPT","CPT","休","F","C8-4","C8-4","休","NI","NI","NI","NI","休","休","休","B小","B小","B小","B大","B大","B大","休"]},
+      {name:"李泓緯", d:["B小","B小","B小","B大","B大","B大","例1","休1","休2","CVCU*","CVCU*","CVCU*","CVCU*","CVCU*","例2","D8-4","例3","V","V","V","V","休3","休4","例4","D小","D小","D小","D小","D小","D小","例1"]},
+      {name:"江佳澤", d:["D小","D小","D小","D小","D小","D小","例1","休1","休2","NS*","NS*","NS*","NS*","休3","休4","例2","RI*","RI*","RI*","RI*","RI*","D8-4","D8-4","例3","例4","C小","C小","C小","C大","C大","C大"]},
+      {name:"李奕昕", d:["休4","C大","C大","C大","C大","C大","C大","例1","休1","A大","A大","例2","休2","I*","休3","A小","C大","A大","A大","A大","例3","C8-4","C8-4","CVCU*","休4","例4","A大","A大","A大","A大","A大"]},
+      {name:"黃培琦", d:["休","休","A小","A小","A小","A大","A大","A大","休","休","休","RC2","RC2","RC2","休","休","W下*","W下*","W下*","W下*","W下*","C大","休","休","F","F","休","B小","B小","B小","B大"]},
+      {name:"何羿侖", d:["例4","休4","休1","B小","B小","B小","B大","B大","B大","例1","休2","CV1*","CV1*","CV1*","例2","休3","RC2","RC2","RC2","RC2","例3","B8-4","B8-4","PI*","PI*","PI*","休4","例4","C小","C小","C小"]},
+      {name:"陳曉倩", d:["休","休","病4","病5","病6","病7","病8","休","休","病9","病10","病11","病12","病13","休","休","病14","病15","病16","病17","病18","休","休","病19","病20","病21","病22","病23","休","休","病24"]},
+      {name:"蕭靜雅", d:["C8-4","C8-4","休","RCC","RCC","RCC","RCC","休","休","RCC","休","休","休","RCC","休","休","RCC","RCC","RCC","RCC","RCC","休","休","RCC","RCC","RCC","RCC","V","ACLS","A小","A小"]},
+      {name:"黃子庭", d:["休","休","NI","NI","NI","NI","NI","休","休","休","C小","C小","C小","C大","C大","C大","休","休","CPT","CPT","CPT","休","休","NI","NI","NI","NI","NI","ACLS","休","B小"]},
+      {name:"郭佩蓉", d:["例4","休4","CPT","CPT","CPT","例1","B小","B小","B小","B大","B大","B大","例2","休1","休2","休3","I*","I*","I*","I*","I*","例3","V","RI*","RI*","RI*","RI*","RI*","休4","例4","D小"]},
+      {name:"游慈瑄", d:["例4","休4","W下*","W下*","W下*","例1","D小","D小","D小","D小","D小","D小","例2","NS*","休1","休2","PI*","PI*","PI*","PI*","PI*","例3","休3","I2*","I2*","I2*","I2*","I2*","休4","例4","例1"]},
+      {name:"蕭傳威", d:["公","休4","RI*","RI*","RI*","例1","休1","C小","C小","C小","C大","C大","C大","例2","休2","休3","CVCU*","CVCU*","CVCU*","CVCU*","CVCU*","例3","休4","CPT","CPT","CPT","CPT","例4","B8-4","B8-4","I2NS*"]},
+      {name:"潘哲緯", d:["例4","休4","I2NS*","I2NS*","I2NS*","I2NS*","I2NS*","例1","A小","A小","A小","A小","A小","A小","例2","休1","I2*","I2*","I2*","I2*","I2*","休2","例3","RC2","RC2","RC2","RC2","休3","例4","休4","RI2*"]},
+      {name:"詹鈞媛", d:["例4","休4","RI2*","RI2*","RI2*","RI2*","例1","休1","休2","RC2","RC2","例2","B大","B大","B大","B大","B大","B大","例3","休3","CV1*","A8-4","A8-4","RI2*","RI2*","RI2*","例4","CPT","ACLS","休4","I*"]},
+      {name:"徐桂芳", d:["A8-4","A8-4","V","V","V","A小","A小","A小","A大","V","V","PI*","PI*","PI*","休","休","休","休","休","休","休","補","休","V","V","V","V","V","休","休","NI"]},
+      {name:"黃姿穎", d:["C大","休4","例1","休1","PI*","PI*","PI*","C大","C大","C大","例2","A大","A大","A大","A大","A大","A大","例3","休2","清*","RC2","休4","休3","W下*","W下*","W下*","例4","RC2","D8-4","D8-4","例1"]},
+      {name:"陳姿勻", d:["D8-4","D8-4","RC2","RC2","C小","C小","C小","例1","休1","B小","B小","B小","B小","B小","B小","例2","休2","NS*","NS*","NS*","NS*","例3","休3","F","休4","CV1*","CV1*","CV1*","ACLS","例4","I2*"]},
+      {name:"李佩雅", d:["例4","休4","F","ACLS","ACLS","F","F","A8-4","A8-4","例1","休1","例2","D小","D小","D小","D小","D小","D小","例3","F","F","休2","休3","I2NS*","I2NS*","I2NS*","I2NS*","I2NS*","例4","休4","RC2"]},
+      {name:"藍子晴", d:["例4","休4","CV1*","CV1*","CV1*","CV1*","休1","例1","休2","W下*","W下*","W下*","W下*","W下*","例2","休3","NS*","例3","B小","B小","B小","B大","B大","B大","例4","休4","PI*","PI*","A8-4","A8-4","例1"]},
+      {name:"李靜怡", d:["B8-4","B8-4","休","休","V","RI*","RI*","休","休","CV1*","CV1*","休","RCC","休","A小","休","RI2*","RI2*","RI2*","RI2*","RI2*","休","休","V","CVCU*","CVCU*","CVCU*","CVCU*","ACLS","休","RCC"]},
+      {name:"巫禹呈", d:["例4","休4","F","F","F","例1","CV1*","休1","休2","I2*","I2*","I2*","I2*","I2*","例2","B小","B小","B小","B大","B大","B大","例3","休3","I*","I*","I*","I*","I*","例4","休4","RI*"]},
+      {name:"許純怡", d:["休","休","I*","I*","I*","I*","I*","D8-4","D8-4","休","休","休","CPT","CPT","休","休","C小","C小","C小","C大","C大","休","休","CV1*","CV1*","V","F","F","ACLS","休","CVCU*"]},
+      {name:"王淑惠", d:["V","V","RCC","休","RC2","RC2","RC2","休","休","PI*","PI*","休","休","休","D8-4","休","休","A小","A小","A小","A大","A大","A大","V","V","V","RI2*","RI2*","休","休","CPT"]},
+      {name:"洪逸慈", d:["休4","V","I2*","I2*","I2*","休1","RI2*","C8-4","C8-4","例1","RCC","RCC","休2","C小","C小","C小","A小","C大","C大","例2","休3","例3","V/補","NS*","NS*","NS*","NS*","NS*","例4","休4","F"]},
+      {name:"張維倫", d:["例4","休4","PI*","PI*","V","CPT","CPT","例1","休1","RI2*","RI2*","RI2*","RI2*","RI2*","例2","休2","NI","例3","D小","D小","D小","D小","D小","D小","例4","休3","休4","RCC","C8-4","C8-4","例1"]},
+      {name:"張茹昀", d:["休3","休4","CVCU*","CVCU*","CVCU*","CVCU*","CVCU*","例1","休1","RI*","RI*","RI*","RI*","RI*","例2","休2","F","F","例3","C小","C小","C小","C大","C大","C大","例4","W下*","W下*","休3","休4","PI*"]},
+      {name:"劉秀英", d:["休","休","NS*","NS*","NS*","NS*","NS*","休","休","I2NS*","I2NS*","I2NS*","I2NS*","I2NS*","B8-4","B8-4","休","補","F","休","A小","A小","A小","A大","A大","A大","休","休","休","休","W下*"]},
+      {name:"陳家榛", d:["A大","A大","休","休","休","I2*","I2*","休","休","I*","I*","I*","I*","休","A8-4","A8-4","CPT","CPT","清*","清*","休","B小","B小","B小","B大","B大","B大","休","休","休","NS*"]},
+      {name:"李曼瑄", d:["B大","B大","B大","例1","休1","W下*","W下*","例2","休2","F","F","F","F","V","例3","休3","I2NS*","I2NS*","I2NS*","I2NS*","I2NS*","例4","C小","C小","C小","C大","C大","C大","休4","V","CV1*"]},
+      {name:"楊惠喬", d:["休","休","L+查","L+查","L+查","L+查","L+查","休","休","L+查","L+查","L+查","L+查","L+查","休","休","L+查","L+查","L+查","L+查","L+查","休","休","L+查","L+查","L+查","L+查","L+查","ACLS","休","L+查"]},
+      {name:"程清福", d:["休","休","延病","延病","延病","延病","延病","休","休","延病","延病","延病","延病","延病","休","休","延病","延病","延病","延病","延病","休","休","延病","延病","延病","延病","延病","休","休","延病"]},
+      {name:"傅偉菱", d:["例4","休4","肺*","肺*","肺*","肺*","肺*","例1","休1","肺*","肺*","肺*","肺*","肺*","例2","休2","V","V","V","V","V","例3","休3","肺*","肺*","肺*","肺*","肺*","例4","休4","肺*"]},
+      {name:"鄭雅華", d:["休","休","肺*","肺*","肺*","肺*","肺*","休","休","肺*","肺*","肺*","肺*","肺*","休","休","肺*","肺*","肺*","肺*","肺*","休","休","肺*","肺*","肺*","V","V","ACLS","休","肺*"]},
+    ]
+  }
+};
+
+// 月份索引（新到舊），預設顯示最新月份
+const MONTH_KEYS = Object.keys(MONTHS).sort().reverse(); // ["2026-6","2026-5"]
+const [DEF_Y, DEF_M] = MONTH_KEYS[0].split("-").map(Number);
+
+// 建立每月查詢結構：BASE["YYYY-M"][name] = {1:..,2:..}
+const BASE = {};
+for (const key in MONTHS) {
+  BASE[key] = {};
+  MONTHS[key].staff.forEach(s => {
+    const m = {}; s.d.forEach((v,i)=>m[i+1]=v);
+    BASE[key][s.name] = m;
+  });
+}
+// 全部出現過的人員（保留出現順序，最新月份優先）
+const STAFF_NAMES = [];
+MONTH_KEYS.forEach(k => MONTHS[k].staff.forEach(s => { if(!STAFF_NAMES.includes(s.name)) STAFF_NAMES.push(s.name); }));
+
+function classify(raw) {
+  if (raw == null || raw === "") return { type:"normal", label:"—", time:"08:00–17:30" };
+  const s = String(raw).trim();
+  // 不出勤：休/國/V/例/病/公/補休/複檢/延病/補/留停(L, L+查)/V補
+  if (/^(休|國|V|例|病|公|補|複檢|延病|L)$/.test(s)
+      || /^休\d*$/.test(s) || /^例\d*$/.test(s) || /^病\d*$/.test(s)
+      || /^L(\+|＋)?查?$/.test(s) || /^V[／/]補$/.test(s)
+      || /補休/.test(s) || /延病/.test(s) || /^L/.test(s))
+    return { type:"rest", label:s, time:"休假 / 不出勤" };
+  // 行政/活動日（一般日班時間）
+  if (/(品營日|機器日|儀器日|資訊日|兒醫日|教學日|ACLS)/.test(s))
+    return { type:"normal", label:s, time:"08:00–17:30" };
+  // 8-4 班
+  if (/8\s*[-－]\s*4/.test(s)) return { type:"eight", label:s, time:"07:45–16:15" };
+  // 有 * → 早班
+  if (s.includes("*")) return { type:"early", label:s, time:"07:45–16:15" };
+  if (/小/.test(s)) return { type:"small", label:s, time:"15:30–24:00" };
+  if (/大/.test(s)) return { type:"big", label:s, time:"23:30–08:00" };
+  return { type:"normal", label:s, time:"08:00–17:30" };
+}
+
+const STORE_KEY = "rt_schedule_overrides_v1";
+let overrides = {};
+try { overrides = JSON.parse(localStorage.getItem(STORE_KEY)) || {}; } catch(e) { overrides = {}; }
+function saveStore(){ try { localStorage.setItem(STORE_KEY, JSON.stringify(overrides)); } catch(e){ alert("無法儲存：瀏覽器儲存空間被封鎖或已滿。"); } }
+const keyOf=(n,y,mo,d)=>`${n}|${y}|${mo}|${d}`;
+function getShift(n,y,mo,d){ const k=keyOf(n,y,mo,d); if(k in overrides)return overrides[k]; const mk=`${y}-${mo}`; if(BASE[mk]&&BASE[mk][n])return BASE[mk][n][d]??""; return ""; }
+const isEdited=(n,y,mo,d)=>keyOf(n,y,mo,d) in overrides;
+
+let curYear=DEF_Y, curMonth=DEF_M, curStaff=USER_NAME;
+const DOW=["日","一","二","三","四","五","六"];
+
+function renderDOW(){
+  document.getElementById("calHeader").innerHTML=DOW.map((d,i)=>{
+    const cls=i===0?"sun":i===6?"sat":"wd"; return `<div class="dow ${cls}">${d}</div>`;
+  }).join("");
+}
+function renderCalendar(){
+  const grid=document.getElementById("calGrid");
+  const today=new Date();
+  const firstDow=new Date(curYear,curMonth,1).getDay();
+  const days=new Date(curYear,curMonth+1,0).getDate();
+  let html="";
+  for(let i=0;i<firstDow;i++)html+=`<div class="cell empty"></div>`;
+  for(let d=1;d<=days;d++){
+    const dow=new Date(curYear,curMonth,d).getDay();
+    const isToday=today.getFullYear()===curYear&&today.getMonth()===curMonth&&today.getDate()===d;
+    const {type,label,time}=classify(getShift(curStaff,curYear,curMonth,d));
+    const dowCls=dow===0?"sun-c":dow===6?"sat-c":"";
+    html+=`<div class="cell ${isToday?'today':''} ${dowCls}" onclick="openModal(${d})">
+      ${isEdited(curStaff,curYear,curMonth,d)?'<span class="edited-dot"></span>':''}
+      <div class="c-date">${d}</div>
+      <div class="badge t-${type}">${label}</div>
+      <div class="c-time">${time}</div></div>`;
+  }
+  grid.innerHTML=html; renderStats();
+}
+function renderStats(){
+  const days=new Date(curYear,curMonth+1,0).getDate();
+  let off=0,small=0,big=0,work=0;
+  for(let d=1;d<=days;d++){
+    const {type}=classify(getShift(curStaff,curYear,curMonth,d));
+    if(type==="rest")off++; else if(type==="small"){small++;work++;} else if(type==="big"){big++;work++;} else work++;
+  }
+  document.getElementById("stats").innerHTML=[
+    ["上班 "+work,"rgba(91,156,246,0.2)","#93c5fd"],
+    ["小夜 "+small,"rgba(251,191,36,0.2)","#fcd34d"],
+    ["大夜 "+big,"rgba(167,139,250,0.22)","#c4b5fd"],
+    ["休假 "+off,"rgba(118,124,147,0.2)","#aeb4c8"],
+  ].map(([t,bg,c])=>`<span class="chip" style="background:${bg};color:${c}">${t}</span>`).join("");
+}
+function renderPerson(){
+  document.getElementById("pName").textContent=curStaff;
+  document.getElementById("avatar").textContent=curStaff[0];
+  document.getElementById("pMeta").textContent=`卡號 ${CARDS[curStaff]||""} · 呼吸治療科`;
+  const mN=["1月","2月","3月","4月","5月","6月","7月","8月","9月","10月","11月","12月"];
+  document.getElementById("monthLabel").textContent=`${curYear} 年 ${mN[curMonth]}`;
+  const hasData = !!BASE[`${curYear}-${curMonth}`];
+  const dn=document.getElementById("dataNote");
+  if(hasData){ dn.textContent="官方班表資料：本月已載入"; dn.style.color="var(--text-muted)"; }
+  else { dn.textContent="本月尚無官方班表（可自行填寫或等待更新）"; dn.style.color="var(--sun)"; }
+}
+function initSelect(){
+  const sel=document.getElementById("staffSelect");
+  STAFF_NAMES.forEach(name=>{const o=document.createElement("option");o.value=name;o.textContent=name;if(name===USER_NAME)o.selected=true;sel.appendChild(o);});
+  sel.onchange=()=>{curStaff=sel.value;render();};
+}
+let editDay=null;
+const QUICK=["休","國","V","例","病","A小","A大","B小","B大","C小","C大","D小","PI*","NS*","CVCU*","RI*","RI2*","I*","I2*","RC2","RCC","A8-4","B8-4","C8-4","D8-4","W下*","F","NI","CV1*","I2NS*"];
+function openModal(d){
+  editDay=d;
+  document.getElementById("mSub").textContent=`${curStaff} · ${curMonth+1}月${d}日`;
+  const inp=document.getElementById("mInput");
+  inp.value=getShift(curStaff,curYear,curMonth,d);
+  document.getElementById("quickBtns").innerHTML=QUICK.map(q=>`<button data-v="${q}">${q}</button>`).join("");
+  document.querySelectorAll("#quickBtns button").forEach(b=>b.onclick=()=>{inp.value=b.dataset.v;});
+  document.getElementById("overlay").classList.add("open");
+  setTimeout(()=>inp.focus(),50);
+}
+const closeModal=()=>document.getElementById("overlay").classList.remove("open");
+document.getElementById("mCancel").onclick=closeModal;
+document.getElementById("mSave").onclick=()=>{overrides[keyOf(curStaff,curYear,curMonth,editDay)]=document.getElementById("mInput").value.trim();saveStore();closeModal();renderCalendar();flashSaved();};
+document.getElementById("mReset").onclick=()=>{delete overrides[keyOf(curStaff,curYear,curMonth,editDay)];saveStore();closeModal();renderCalendar();flashSaved();};
+document.getElementById("overlay").addEventListener("click",e=>{if(e.target.id==="overlay")closeModal();});
+document.getElementById("mInput").addEventListener("keydown",e=>{if(e.key==="Enter")document.getElementById("mSave").click();});
+document.getElementById("prevBtn").onclick=()=>{if(--curMonth<0){curMonth=11;curYear--;}render();};
+document.getElementById("nextBtn").onclick=()=>{if(++curMonth>11){curMonth=0;curYear++;}render();};
+
+function flashSaved(){ const n=document.getElementById("saveNote"); n.textContent="✓ 已儲存"; n.classList.remove("flash"); void n.offsetWidth; n.classList.add("flash"); setTimeout(()=>{n.textContent="✓ 修改會自動儲存於此瀏覽器";},1400); }
+
+// 匯出備份
+document.getElementById("btnExport").onclick=()=>{
+  const blob=new Blob([JSON.stringify(overrides,null,2)],{type:"application/json"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download=`班表修改備份_${new Date().toISOString().slice(0,10)}.json`;
+  a.click(); URL.revokeObjectURL(a.href);
+};
+// 匯入備份
+document.getElementById("btnImport").onclick=()=>document.getElementById("importFile").click();
+document.getElementById("importFile").onchange=(e)=>{
+  const f=e.target.files[0]; if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{ try{ const data=JSON.parse(r.result); if(typeof data!=="object")throw 0; overrides=data; saveStore(); renderCalendar(); flashSaved(); }catch(err){ alert("匯入失敗：檔案格式不正確。"); } };
+  r.readAsText(f); e.target.value="";
+};
+// 清除所有修改
+document.getElementById("btnClearAll").onclick=()=>{
+  if(Object.keys(overrides).length===0){ alert("目前沒有任何手動修改。"); return; }
+  if(confirm("確定要清除所有手動修改，還原成原始班表嗎？此動作無法復原（建議先匯出備份）。")){
+    overrides={}; saveStore(); renderCalendar(); flashSaved();
+  }
+};
+
+function render(){renderPerson();renderCalendar();}
+renderDOW();initSelect();render();
+</script>
+</body>
+</html>
