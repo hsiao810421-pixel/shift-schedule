@@ -450,6 +450,62 @@ for (const key in MONTHS) {
 const STAFF_NAMES = [];
 MONTH_KEYS.forEach(k => MONTHS[k].staff.forEach(s => { if(!STAFF_NAMES.includes(s.name)) STAFF_NAMES.push(s.name); }));
 
+// ─────────────────────────────────────────────
+//  雲端班表（Google 試算表自動載入）
+//  一個試算表、每月一個分頁，分頁名稱＝「YYYY-MM」（例：2026-08）
+//  分頁第一列：姓名, 卡號, 1, 2, …, 31；其後每人一列。
+//  試算表需設定「知道連結的人 → 檢視者」。讀不到時自動改用內建資料。
+// ─────────────────────────────────────────────
+const SHEET_ID = "1smuAeRccJJByyyOzmG_Q7GhHSSRL0_Jphl_Jqnh3jhU";
+const SHEET_ENABLED = true;
+const REMOTE = {};        // "YYYY-M"(mo 0-indexed) -> {order:[], data:{name:{day:code}}}
+const remoteState = {};   // "YYYY-M" -> 'loading'|'ok'|'empty'|'error'
+const monthTabName = (y,mo) => `${y}-${String(mo+1).padStart(2,"0")}`;
+function parseCSV(text){
+  const rows=[]; let row=[], cur="", q=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(q){ if(c==='"'){ if(text[i+1]==='"'){cur+='"';i++;} else q=false; } else cur+=c; }
+    else if(c==='"') q=true;
+    else if(c===",") { row.push(cur); cur=""; }
+    else if(c==="\n"){ row.push(cur); rows.push(row); row=[]; cur=""; }
+    else if(c!=="\r") cur+=c;
+  }
+  if(cur!==""||row.length){ row.push(cur); rows.push(row); }
+  return rows;
+}
+async function fetchRemoteMonth(y,mo){
+  const mk=`${y}-${mo}`, tab=monthTabName(y,mo);
+  const url=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&headers=1&sheet=${encodeURIComponent(tab)}`;
+  try{
+    const res=await fetch(url,{cache:"no-store"});
+    const txt=await res.text();
+    const rows=parseCSV(txt);
+    if(rows.length<2 || !rows[0].some(h=>/^\d+$/.test(String(h).trim()))){ remoteState[mk]="empty"; return false; }
+    const header=rows[0], dayCols=[];
+    header.forEach((h,i)=>{ const t=String(h).trim(); if(/^\d+$/.test(t)) dayCols.push([i,parseInt(t,10)]); });
+    const order=[], data={};
+    for(let r=1;r<rows.length;r++){
+      const row=rows[r], name=(row[0]||"").trim(); if(!name) continue;
+      order.push(name);
+      const m={}; dayCols.forEach(([ci,dn])=>{ m[dn]=(row[ci]||"").trim(); });
+      data[name]=m;
+      const card=(row[1]||"").trim(); if(card && !CARDS[name]) CARDS[name]=card;
+    }
+    REMOTE[mk]={order,data}; remoteState[mk]="ok";
+    return true;
+  }catch(e){ remoteState[mk]="error"; console.warn("雲端班表載入失敗（改用內建資料）：",tab,e); return false; }
+}
+function ensureRemote(y,mo,cb){
+  const mk=`${y}-${mo}`;
+  if(!SHEET_ENABLED || remoteState[mk]) return;   // 每月每次工作階段只嘗試一次
+  remoteState[mk]="loading";
+  fetchRemoteMonth(y,mo).then(ok=>{ if(ok && cb) cb(); });
+}
+const monthOrder = (mk) => REMOTE[mk] ? REMOTE[mk].order
+  : (MONTHS[mk] ? MONTHS[mk].staff.map(s=>s.name) : STAFF_NAMES);
+const monthHasData = (mk) => !!REMOTE[mk] || !!BASE[mk];
+
 function classify(raw) {
   if (raw == null || raw === "") return { type:"normal", label:"—", time:"08:00–17:30" };
   const s = String(raw).trim();
@@ -580,7 +636,7 @@ let overrides = {};
 try { overrides = JSON.parse(localStorage.getItem(STORE_KEY)) || {}; } catch(e) { overrides = {}; }
 function saveStore(){ try { localStorage.setItem(STORE_KEY, JSON.stringify(overrides)); } catch(e){ alert("無法儲存：瀏覽器儲存空間被封鎖或已滿。"); } }
 const keyOf=(n,y,mo,d)=>`${n}|${y}|${mo}|${d}`;
-function getShift(n,y,mo,d){ const k=keyOf(n,y,mo,d); if(k in overrides)return overrides[k]; const mk=`${y}-${mo}`; if(BASE[mk]&&BASE[mk][n])return BASE[mk][n][d]??""; return ""; }
+function getShift(n,y,mo,d){ const k=keyOf(n,y,mo,d); if(k in overrides)return overrides[k]; const mk=`${y}-${mo}`; if(REMOTE[mk]&&REMOTE[mk].data[n])return REMOTE[mk].data[n][d]??""; if(BASE[mk]&&BASE[mk][n])return BASE[mk][n][d]??""; return ""; }
 const isEdited=(n,y,mo,d)=>keyOf(n,y,mo,d) in overrides;
 
 let curYear=DEF_Y, curMonth=DEF_M, curStaff=USER_NAME;
@@ -592,6 +648,7 @@ function renderDOW(){
   }).join("");
 }
 function renderCalendar(){
+  ensureRemote(curYear,curMonth,()=>{ refreshStaffSelect(); renderPerson(); renderCalendar(); });
   const grid=document.getElementById("calGrid");
   const today=new Date();
   const firstDow=new Date(curYear,curMonth,1).getDay();
@@ -631,15 +688,23 @@ function renderPerson(){
   document.getElementById("pMeta").textContent=`卡號 ${CARDS[curStaff]||""} · 呼吸治療科`;
   const mN=["1月","2月","3月","4月","5月","6月","7月","8月","9月","10月","11月","12月"];
   document.getElementById("monthLabel").textContent=`${curYear} 年 ${mN[curMonth]}`;
-  const hasData = !!BASE[`${curYear}-${curMonth}`];
+  const mk=`${curYear}-${curMonth}`;
   const dn=document.getElementById("dataNote");
-  if(hasData){ dn.textContent="官方班表資料：本月已載入"; dn.style.color="var(--text-muted)"; }
+  if(REMOTE[mk]){ dn.textContent="官方班表：雲端試算表已載入"; dn.style.color="var(--text-muted)"; }
+  else if(BASE[mk]){ dn.textContent="官方班表：內建資料"; dn.style.color="var(--text-muted)"; }
   else { dn.textContent="本月尚無官方班表（可自行填寫或等待更新）"; dn.style.color="var(--sun)"; }
 }
 function initSelect(){
   const sel=document.getElementById("staffSelect");
   STAFF_NAMES.forEach(name=>{const o=document.createElement("option");o.value=name;o.textContent=name;if(name===USER_NAME)o.selected=true;sel.appendChild(o);});
   sel.onchange=()=>{curStaff=sel.value;render();};
+}
+function refreshStaffSelect(){
+  const sel=document.getElementById("staffSelect");
+  const have=new Set([...sel.options].map(o=>o.value));
+  Object.keys(REMOTE).forEach(mk=>REMOTE[mk].order.forEach(n=>{
+    if(!have.has(n)){ const o=document.createElement("option"); o.value=n; o.textContent=n; sel.appendChild(o); have.add(n); }
+  }));
 }
 let editDay=null, editStaff=null;
 const QUICK=["休","國","V","例","病","A小","A大","B小","B大","C小","C大","D小","PI*","NS*","CVCU*","RI*","RI2*","I*","I2*","RC2","RCC","A8-4","B8-4","C8-4","D8-4","W下*","F","NI","CV1*","I2NS*"];
@@ -722,14 +787,15 @@ function dutyRow(area, sub, name, phone){
 }
 function renderDayView(){
   const y=dayDate.getFullYear(), mo=dayDate.getMonth(), d=dayDate.getDate(), dow=dayDate.getDay();
+  ensureRemote(y,mo,renderDayView);
   const isWe=(dow===0||dow===6);
-  const mN=["1月","2月","3月","4月","5月","6月","7月","8月","9月","10月","11月","12月"];
+  const mk=`${y}-${mo}`;
   document.getElementById("dayLabel").textContent=`${mo+1}/${d}`;
-  const hasData=!!BASE[`${y}-${mo}`];
+  const hasData=monthHasData(mk);
 
   // 蒐集當日出勤
   const buckets={day:[],small:[],big:[],other:[]};
-  STAFF_NAMES.forEach(name=>{
+  monthOrder(mk).forEach(name=>{
     const info=resolveInfo(getShift(name,y,mo,d),isWe);
     if(info.cat==="rest") return;
     buckets[info.cat].push({name,info});
@@ -788,14 +854,14 @@ function renderDayView(){
 // ─────────────────────────────────────────────
 function renderMaster(){
   const y=curYear, mo=curMonth, mk=`${y}-${mo}`;
+  ensureRemote(y,mo,renderMaster);
   const days=new Date(y,mo+1,0).getDate();
-  const hasData=!!BASE[mk];
-  const order = MONTHS[mk] ? MONTHS[mk].staff.map(s=>s.name) : STAFF_NAMES;
-  const today=new Date();
-  const isTodayMonth = today.getFullYear()===y && today.getMonth()===mo;
+  const hasData=monthHasData(mk);
+  const order=monthOrder(mk);
+  const src = REMOTE[mk] ? "雲端試算表" : (BASE[mk] ? "內建資料" : "");
 
   document.getElementById("masterHint").innerHTML=
-    `<span>整科月度總表　·　${y} 年 ${mo+1} 月　·　${order.length} 人</span>`+
+    `<span>整科月度總表　·　${y} 年 ${mo+1} 月　·　${order.length} 人${src?`　·　來源：${src}`:""}</span>`+
     `<span>點任一格可看區域資訊或修改班別；<span style="color:var(--accent)">藍框</span>＝已修改。</span>`;
 
   if(!hasData){
