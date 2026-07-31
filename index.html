@@ -95,7 +95,7 @@
   .badge {
     display: inline-flex; align-items: center; justify-content: center;
     padding: 3px 8px; border-radius: 7px; font-size: 12.5px; font-weight: 700;
-    margin-bottom: 4px; max-width: 100%; word-break: break-all; line-height: 1.25;
+    margin-bottom: 4px; max-width: 100%; word-break: normal; overflow-wrap: break-word; line-height: 1.25; text-align: center;
   }
   .c-time { font-size: 10px; color: var(--text-muted); margin-top: auto; line-height: 1.35; }
   .edited-dot { position: absolute; top: 7px; right: 8px; width: 6px; height: 6px; border-radius: 50%; background: var(--sun); }
@@ -123,6 +123,8 @@
   .btn-ghost { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
   .btn-reset { background: rgba(240,89,106,0.15); color: var(--sun); border: 1px solid rgba(240,89,106,0.3); margin-right: auto; }
   @media (max-width: 640px) {
+    #personView { display: flex; flex-direction: column; }
+    #personView .legend { order: 99; margin: 16px 0 0; }
     .cell { min-height: 64px; padding: 5px 5px 6px; border-radius: 9px; }
     .badge { font-size: 10.5px; padding: 2px 5px; }
     .c-time { display: none; }
@@ -188,6 +190,8 @@
   .edit-head { font-size: 12px; color: var(--text-muted); margin-bottom: 9px; font-weight: 650; letter-spacing: .02em; }
   /* ── 總表（整科月度大表）── */
   .master-hint { font-size: 12px; color: var(--text-muted); margin-bottom: 10px; display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  .sheet-link { margin-left: auto; font-size: 12px; font-weight: 650; padding: 6px 12px; border-radius: 8px; background: var(--surface2); border: 1px solid var(--border); color: var(--accent); text-decoration: none; white-space: nowrap; }
+  .sheet-link:hover { border-color: var(--accent); }
   .master-wrap { overflow: auto; border: 1px solid var(--border); border-radius: 12px; max-height: 78vh; -webkit-overflow-scrolling: touch; }
   table.master { border-collapse: separate; border-spacing: 0; font-size: 11px; width: max-content; }
   table.master th, table.master td { border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); padding: 4px 6px; text-align: center; white-space: nowrap; height: 26px; }
@@ -466,7 +470,7 @@ const SHEET_ENABLED = true;
 const EDIT_ENABLED = false;
 // 讀取試算表「紅字」當作已修改標記的 Apps Script 網頁程式網址。
 // 留空＝停用（資料照常載入，只是不顯示紅框）。填入部署後的 /exec 網址即啟用。
-const REDMARK_URL = "";
+const REDMARK_URL = "https://script.google.com/macros/s/AKfycbyYrKQPpWyDWHCI12G9HvYj7K9-hBPGijuOqK9QRqylcgFs76_usfWIPZBExFWE3C8/exec";
 const REMOTE = {};        // "YYYY-M"(mo 0-indexed) -> {order:[], data:{name:{day:code}}}
 const remoteState = {};   // "YYYY-M" -> 'loading'|'ok'|'empty'|'error'
 const REDMARK = {};       // "YYYY-M" -> Set("name|day")  試算表紅字＝已修改
@@ -577,6 +581,8 @@ function classify(raw) {
 // 時段代碼（依 classify 類型）：早班/8-4=XJ、白班=H2、小夜=XD、大夜=XF
 const TIMECODE = { early:"XJ", eight:"XJ", normal:"H2", small:"XD", big:"XF" };
 const tcSuffix = (t) => TIMECODE[t] ? `（${TIMECODE[t]}）` : "";
+// 長代碼在正中間插入斷行點（例：CVCU* → CV / CU*），窄畫面才會斷行
+function fmtBadge(s){ s=String(s); if(s.length>=4){ const i=Math.floor(s.length/2); return s.slice(0,i)+"<wbr>"+s.slice(i); } return s; }
 
 const PHONE = { A:"1797", B:"1798", C:"1854", D:"1801" };
 
@@ -712,7 +718,7 @@ function renderCalendar(){
     html+=`<div class="cell ${isToday?'today':''} ${dowCls}" onclick="openModal(${d})">
       ${isMarked(curStaff,curYear,curMonth,d)?'<span class="edited-dot"></span>':''}
       <div class="c-date">${d}</div>
-      <div class="badge t-${type}">${label}</div>
+      <div class="badge t-${type}">${fmtBadge(label)}</div>
       <div class="c-time">${time}${tcSuffix(type)}</div></div>`;
   }
   grid.innerHTML=html; renderStats();
@@ -920,7 +926,8 @@ function renderMaster(){
 
   document.getElementById("masterHint").innerHTML=
     `<span>整科月度總表　·　${y} 年 ${mo+1} 月　·　${order.length} 人${src?`　·　來源：${src}`:""}</span>`+
-    `<span>點任一格可看區域資訊；<span style="color:var(--sun)">紅框</span>＝已修改（試算表紅字）。</span>`;
+    `<span>點任一格可看區域資訊；<span style="color:var(--sun)">紅框</span>＝已修改（試算表紅字）。</span>`+
+    `<a class="sheet-link" href="https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit?usp=sharing" target="_blank" rel="noopener">🔗 開啟原始試算表</a>`;
 
   if(!hasData){
     document.getElementById("masterTable").innerHTML=`<tbody><tr><td class="mcol-name">—</td><td style="padding:14px">本月尚無官方班表資料。</td></tr></tbody>`;
