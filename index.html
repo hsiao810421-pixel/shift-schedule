@@ -149,15 +149,7 @@
     .person-card { padding: 7px 14px; margin-bottom: 7px; }
   }
 
-  @media (max-width: 640px) {
-    #personView:not([hidden]) { display: flex; flex-direction: column; }
-    #personView .legend { order: 99; margin: 16px 0 0; }
-    .cell { min-height: 64px; padding: 5px 5px 6px; border-radius: 9px; }
-    .badge { font-size: 10.5px; padding: 2px 5px; }
-    .c-time { display: none; }
-    .stats { display: none; }
-    .header-controls { width: 100%; justify-content: space-between; }
-  }
+  /* 手機版規則已整併到檔案下方單一 @media (max-width:640px) 區塊 */
   .toolbar { margin-top: 16px; padding: 12px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
   .save-note { font-size: 12px; color: #4ade80; font-weight: 600; }
   .data-note { font-size: 12px; color: var(--text-muted); }
@@ -241,25 +233,121 @@
   td.mc-big   { background: rgba(167,139,250,0.17); color: #c4b5fd; }
   td.mc-normal{ background: rgba(91,156,246,0.14); color: #93c5fd; }
 
+  /* ══════════════════════════════════════════════════
+     手機版（≤640px）— 單一權威區塊
+     原則：減少「訊號種類」而非減少資訊。
+     週末只標一次、格線改底色塊、班別為主角、觸控 ≥40px。
+     ══════════════════════════════════════════════════ */
   @media (max-width: 640px) {
-    .tab { padding: 6px 10px; font-size: 12px; }
-    .duty-grid { grid-template-columns: 1fr; }
-    /* 頁首：品牌縮小、導覽壓成精簡一列 */
-    header { padding: 8px 12px 8px; gap: 8px; }
+    :root { --gutter: 12px; --cell-gap: 4px; --tap: 40px; }
+    body { min-height: 100dvh; }
+
+    /* ── 頁首：品牌＋分頁一列，導覽獨立一列 ── */
+    header {
+      background: var(--bg);
+      padding: calc(4px + env(safe-area-inset-top)) calc(var(--gutter) + env(safe-area-inset-right)) 0 calc(var(--gutter) + env(safe-area-inset-left));
+      gap: 6px;
+    }
+    .brand { margin-right: auto; }
     .brand-eyebrow { display: none; }
-    .brand-title { font-size: 15px; }
-    .tabs { padding: 2px; }
-    .header-controls { width: 100%; gap: 6px; margin-left: 0; justify-content: space-between; }
-    .nav-btn { width: 30px; height: 30px; font-size: 15px; }
-    .month-label { font-size: 13px; min-width: 0; flex: 1; }
-    #staffSelect { min-width: 0; flex: 1; padding: 6px 26px 6px 10px; font-size: 13px; }
-    #dToday { padding: 6px 10px; }
-    /* 總表：格子再小一點 */
-    table.master { font-size: 9.5px; }
-    table.master th, table.master td { padding: 2px 3px; height: 22px; }
-    table.master thead th small { font-size: 8px; }
-    .mcol-name { min-width: 42px; }
-    .master-wrap { max-height: 76vh; }
+    .brand-title { font-size: 15px; font-weight: 600; }
+
+    /* 分頁改底線式：實心藍底會和班別語意藍（8-5半／週六）打架 */
+    .tabs { background: transparent; border: none; padding: 0; gap: 0; }
+    .tab {
+      height: var(--tap); padding: 0 11px; font-size: 13px;
+      border-radius: 0; border-bottom: 2px solid transparent;
+    }
+    .tab.active { background: transparent; color: var(--text); border-bottom-color: var(--accent); }
+
+    .header-controls { width: 100%; gap: 6px; margin-left: 0; padding-bottom: 6px; justify-content: space-between; }
+    .nav-btn { width: var(--tap); height: var(--tap); font-size: 18px; }
+    .month-label { font-size: clamp(12.5px, 3.9vw, 14px); min-width: 0; flex: 1; white-space: nowrap; }
+    #staffSelect { min-width: 0; flex: 1.25; height: var(--tap); padding: 0 28px 0 11px; font-size: 14px; }
+    #dToday { height: var(--tap); padding: 0 13px; }
+
+    main { padding: 13px var(--gutter) calc(36px + env(safe-area-inset-bottom)); }
+
+    /* ── 個人班表 ── */
+    #personView:not([hidden]) { display: flex; flex-direction: column; }
+    #personView .legend { order: 99; margin: 14px 0 0; }
+    .stats { display: none; }
+    .person-card { padding: 10px 12px; gap: 11px; margin-bottom: 12px; border-radius: 10px; }
+    .avatar { width: 36px; height: 36px; border-radius: 10px; font-size: 15px; }
+    .person-name { font-size: 16px; }
+    .person-meta { font-size: 11.5px; }
+
+    /* 星期列：拿掉色塊，週末只靠文字色標示一次 */
+    .cal-header { gap: var(--cell-gap); margin-bottom: 6px; }
+    .dow { padding: 2px 0; font-size: 10.5px; letter-spacing: .1em; }
+    .dow.sun { color: var(--sun); background: none; }
+    .dow.sat { color: var(--sat); background: none; }
+
+    /* 格子固定等高 → 長代碼折行也不會撐歪整列的節奏 */
+    .cal-grid { gap: var(--cell-gap); }
+    .cell {
+      height: 64px; min-height: 0; padding: 5px 3px 6px; border-radius: 10px;
+      border: none; background: var(--surface); align-items: center;
+    }
+    .cell:hover { transform: none; }
+    .cell:active { transform: scale(.96); }
+    .cell.empty { background: transparent; }
+    .cell.empty:active { transform: none; }
+    .cell.sun-c, .cell.sat-c { border-top: none; }
+    .cell.today { box-shadow: inset 0 0 0 1.5px var(--accent); }
+
+    /* 階層反轉：手機上要先看到「上什麼班」，日期退為配角 */
+    .c-date { font-size: 11px; font-weight: 600; margin-bottom: 0; }
+    .badge {
+      font-size: 12.5px; font-weight: 700; padding: 1px 3px; line-height: 1.15;
+      width: 100%; margin: auto 0; word-break: normal; overflow-wrap: break-word;
+    }
+    .c-time { display: none; }
+    .edited-dot { top: 5px; right: 5px; }
+
+    /* 唯讀模式下這排只剩一句資料來源，收成一行 */
+    .toolbar { margin-top: 12px; padding: 9px 12px; border-radius: 10px; gap: 8px; }
+    .data-note { font-size: 11.5px; }
+    .legend { padding: 10px 12px; gap: 6px 12px; }
+    .legend-item { font-size: 11px; }
+
+    /* ── 本日出勤 ── */
+    .day-banner { padding: 11px 12px; gap: 8px; margin-bottom: 13px; border-radius: 10px; }
+    .day-date { font-size: 15px; }
+    .day-dow { font-size: 12px; }
+    .mode-badge { font-size: 10.5px; padding: 3px 9px; }
+    .day-count { font-size: 11.5px; }
+    .mode-hint { font-size: 11px; line-height: 1.45; }
+    .section { margin-bottom: 15px; }
+    .section-head { margin-bottom: 7px; }
+    .section-title { font-size: 14px; }
+
+    .duty-grid { grid-template-columns: 1fr; gap: 6px; }
+    .duty-row { padding: 8px 11px; gap: 9px; border-radius: 10px; }
+    .duty-row:active { transform: scale(.99); }
+    .duty-area .main { font-size: 12.5px; }
+    .duty-area .sub { font-size: 10px; margin-top: 1px; }
+    /* 人名升為主角：靠字級拉開層級，電話仍保留 accent 以維持「可撥打」的暗示 */
+    .duty-name { font-size: 15px; font-weight: 700; }
+    .phone-chip {
+      height: 34px; padding: 0 10px; font-size: 12px; font-weight: 600;
+      background: transparent; border-color: var(--border);
+    }
+
+    /* ── 總表 ── */
+    .master-hint { font-size: 11px; gap: 6px 8px; margin-bottom: 8px; line-height: 1.45; }
+    .sheet-link { margin-left: 0; font-size: 11.5px; padding: 7px 11px; }
+    /* 9.5px 低於可讀下限，換來的密度不值得——提到 11px，改用橫向捲動換取可讀性 */
+    table.master { font-size: 11px; }
+    table.master th, table.master td { padding: 3px 5px; height: 26px; }
+    table.master thead th small { font-size: 8.5px; }
+    .mcol-name { min-width: 52px; }
+    .master-wrap { max-height: 74dvh; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    .cell:active { transform: none; }
   }
 </style>
 </head>
