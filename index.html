@@ -416,14 +416,16 @@
     .c-date { font-size: 11px; margin-bottom: 0; }
     /* 一律單行、垂直置中 → 整個網格的標籤對齊在同一條線上。
        尺級由 badgeCls() 依字寬單位指派，格內文字空間約 40px。 */
+    /* 色塊尺寸本來就一致（43×20），但長代碼幾乎頂到邊、短代碼很鬆，
+       視覺上就會覺得大小不一。整體降一級字，讓每個代碼都留得下邊距。 */
     .badge {
-      font-size: 12.5px; padding: 0 1px; margin: auto 0; width: 100%;
+      font-size: 11.5px; padding: 0 2px; margin: auto 0; width: 100%;
       height: 20px;   /* 固定色塊高度：縮字後仍與其他格對齊在同一條線 */
       letter-spacing: 0; white-space: nowrap;
     }
-    .badge.b-2 { font-size: 11px; }    /* 6 單位，如「儀器日」 */
-    .badge.b-3 { font-size: 10px; }    /* 7–8 單位 */
-    .badge.b-4 { font-size: 8.5px; }   /* ≥9 單位，如「複檢/補休」 */
+    .badge.b-2 { font-size: 10.5px; }   /* 6 單位，如「儀器日」 */
+    .badge.b-3 { font-size: 9.5px; }    /* 7–8 單位 */
+    .badge.b-4 { font-size: 8px; }      /* ≥9 單位，如「複檢/補休」 */
     .c-time { display: none; }
     .edited-dot { top: 5px; right: 5px; }
 
@@ -863,9 +865,9 @@ const AREA = {
            duty:["POR 常規（含重大申請追蹤、超過七天未送再次追蹤）","ER 常規（含 ED1／601–603）","ER 大樓病人（RCC、W33–W35）到一醫的檢查","W33–W35 病人數 > 9 需協助 RCC 同仁"]},
   "CPT":  {ord:15, label:"CPT",    area:"CPT 會診",                  beds:"",          phone:"1804", time:"08:00–17:30", noon:"12:00–13:30 無須值班",
            duty:["CPT 會診","CCRT 會診","PERIO＋ERAS，週二 9 點團體衛教","協助病房組換管"]},
-  "清*":  {ord:16, label:"清消*",  area:"清消 / 機動（*班）",        beds:"",          phone:"",     time:"07:45–16:15", noon:"",
-           duty:["清消 / 機動支援"]},
-  "肺*":  {ord:17, label:"肺*",    area:"肺復原門診",                beds:"",          phone:"83159", time:"07:45–16:15", noon:"",
+  "清*":  {ord:16, label:"清消*",  area:"清消 / 機動（*班）",        beds:"",          phone:"",     time:"07:45–16:15", noon:"", noNote:true,
+           duty:["清潔日"]},
+  "肺*":  {ord:17, label:"肺*",    area:"肺復原門診",                beds:"",          phone:"83159", time:"07:45–16:15", noon:"", noNote:true,
            duty:["肺部復原運動","肺功能檢查"]},
 };
 
@@ -920,7 +922,8 @@ function resolveInfo(raw, isWeekend){
     const a=AREA[s];
     return { cat:"day", label:a.label, area:a.area, beds:a.beds, phone:a.phone, time:a.time,
              duty:a.duty.slice(), noon:a.noon, ord:a.ord, badge:base.type,
-             note: a.time.charAt(0)==="0"&&a.time.startsWith("07:45") ? "週間白班 CU 同仁需紀錄 2 次（白天、下午）。" : "" };
+             // noNote：非 CU 的白班區域（如肺復原門診）不套用 CU 紀錄次數附註
+             note: (!a.noNote && a.time.startsWith("07:45")) ? "週間白班 CU 同仁需紀錄 2 次（白天、下午）。" : "" };
   }
   if (ACTIVITY.test(s))
     return { cat:"other", label:s, area:"行政 / 課程", phone:"", time:"08:00–17:30", duty:[], badge:"normal" };
