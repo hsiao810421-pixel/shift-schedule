@@ -304,6 +304,39 @@
   .info-note { font-size: 11.5px; color: var(--ink-3); margin-top: 12px; padding-top: 11px; border-top: 1px solid var(--line-2); line-height: 1.55; }
   .edit-head { font-size: 12px; color: var(--ink-2); margin-bottom: 10px; font-weight: 600; letter-spacing: .04em; }
 
+  /* ── 班別代碼與排班原則（可展開資訊框）───────── */
+  .guide { margin-top: 20px; }
+  .guide-toggle {
+    width: 100%; display: flex; align-items: center; gap: 10px; padding: 13px 15px;
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--r-cell);
+    box-shadow: var(--sh-card); cursor: pointer; font-family: inherit; text-align: left;
+    transition: border-color .16s var(--ease);
+  }
+  .guide-toggle:hover { border-color: var(--teal); }
+  .guide-title { font-size: 14.5px; font-weight: 700; color: var(--ink); letter-spacing: .02em; }
+  .guide-hint { font-size: 12px; color: var(--ink-3); margin-left: auto; }
+  .guide-chev { font-size: 13px; color: var(--ink-3); transition: transform .18s var(--ease); line-height: 1; }
+  .guide.open .guide-chev { transform: rotate(180deg); }
+  .guide-body { margin-top: 8px; display: flex; flex-direction: column; gap: 6px; }
+  .g-item { background: var(--card); border: 1px solid var(--line); border-radius: var(--r-cell); overflow: hidden; }
+  .g-item.open { border-color: var(--teal-line); }
+  .g-head {
+    width: 100%; display: block; padding: 11px 14px; background: none; border: none;
+    font-family: inherit; text-align: left; cursor: pointer;
+  }
+  .g-head:hover { background: var(--teal-wash); }
+  .g-codes { display: block; font-size: 13px; font-weight: 600; color: var(--ink); line-height: 1.55; }
+  .g-meta { display: flex; align-items: center; gap: 8px; margin-top: 5px; font-size: 11.5px; color: var(--ink-3); }
+  .g-flag { font-size: 10.5px; font-weight: 600; padding: 2px 9px; border-radius: var(--r-chip); }
+  .g-flag.yes { background: var(--c-h2-bg); color: var(--c-h2-fg); }
+  .g-flag.no  { background: var(--c-off-bg); color: var(--c-off-fg); }
+  .g-more { margin-left: auto; color: var(--teal-deep); font-weight: 600; }
+  /* 排班原則原文含換行與 A./B./C. 條列，用 pre-line 保留 */
+  .g-rule {
+    padding: 11px 14px 13px; margin: 0 14px; border-top: 1px solid var(--line);
+    font-size: 12.5px; line-height: 1.75; color: var(--ink-2); white-space: pre-line;
+  }
+
   /* ── 總表 ───────────────────────────────────── */
   .master-hint { font-size: 12.5px; color: var(--ink-2); margin-bottom: 12px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
   .sheet-link {
@@ -434,6 +467,14 @@
     .legend { gap: 6px 14px; }
     .legend-item { font-size: 11.5px; }
 
+    /* 圖例 order:99，資訊框排在它後面 → 個人班表最下方 */
+    .guide { order: 100; margin-top: 16px; }
+    .guide-toggle { padding: 12px 14px; }
+    .guide-toggle:active { transform: scale(.995); }
+    .guide-title { font-size: 14px; }
+    .g-codes { font-size: 12.5px; }
+    .g-rule { font-size: 12px; line-height: 1.7; }
+
     /* ── 本日出勤 ── */
     .day-banner { gap: 9px; margin-bottom: 16px; padding-bottom: 13px; }
     .day-date { font-size: 19px; }
@@ -521,6 +562,14 @@
     </span>
     <input type="file" id="importFile" accept="application/json" style="display:none">
   </div>
+  <section class="guide" id="guide">
+    <button class="guide-toggle" id="guideToggle" aria-expanded="false" aria-controls="guideBody">
+      <span class="guide-title">班別代碼與排班原則</span>
+      <span class="guide-hint">點擊查看</span>
+      <span class="guide-chev" aria-hidden="true">⌄</span>
+    </button>
+    <div class="guide-body" id="guideBody" hidden></div>
+  </section>
  </div>
  <div id="dayView" hidden>
    <div class="day-banner" id="dayBanner"></div>
@@ -891,6 +940,59 @@ const HOLIDAY_DAY = {
 };
 const ACTIVITY = /^(品營日|機器日|儀器日|資訊日|兒醫日|教學日|ACLS)$/;
 
+// 非臨床人力（不當人力）班別 → 一律以灰色呈現。
+// 休/國/V/例/病/公/補休/L+查 在 classify 已歸為 rest（本來就是灰的），
+// 這裡補上仍算出勤、但不列入臨床人力的公務日與課程。
+// 只換顏色，不動 type/cat —— 統計與本日出勤的分區邏輯維持原樣。
+const NON_CLINICAL = /^(ACLS|品營日|機器日|儀器日|資訊日|兒醫日|教學日|體檢|喪|產)$/;
+const colorType = (code, type) => NON_CLINICAL.test(String(code==null?"":code).trim()) ? "rest" : type;
+
+// ─────────────────────────────────────────────
+//  班別代碼與排班原則（來源：科內「班別代碼跟班表的關係」試算表）
+//  clinical=false 即不列入臨床人力（不當人力），日曆上以灰色呈現。
+// ─────────────────────────────────────────────
+const CODE_GUIDE = [
+  { codes:"RI*、I*、W下*、I2NS*、RI2*、CV1*、I2*、PI*、CVCU*、NS*", att:"XJ", time:"07:45–16:15", clinical:true,
+    rule:"排班者依照全年區域統計分配，無須預班。" },
+  { codes:"A8-4、B8-4、C8-4、D8-4", att:"XJ", time:"07:45–16:15", clinical:true,
+    rule:"假日白班（星期六、星期日及國定假日），排班者必須參照同仁假日值班順序表排序。" },
+  { codes:"NI、CPT、RC2、F、RCC", att:"H2", time:"08:00–17:30", clinical:true,
+    rule:"排班者依照全年區域統計分配，無需預班；RCC 按照每月輪值表，當月初始班表之白班均為 RCC。" },
+  { codes:"L+查", att:"H2", time:"08:00–17:30", clinical:false,
+    rule:"總組長以 L+查 行政班為主，非臨床人力但可以幫忙，無需預班。" },
+  { codes:"A小、B小、C小、D小", att:"XD", time:"15:30–24:00", clinical:true,
+    rule:"排班者依照夜班順位階梯式安排，初始班表為該區域三天小夜，接三天大夜，小夜前一天休假，以及大夜後兩天休假為原則，D 組安排六天小夜，小夜前後一天休假為原則。" },
+  { codes:"A大、B大、C大", att:"XF", time:"23:30–08:00", clinical:true,
+    rule:"排班者依照夜班順位階梯式安排，初始班表為該區域三天小夜，接三天大夜，小夜前一天休假，以及大夜後兩天休假為原則，D 組安排六天小夜，小夜前後一天休假為原則。" },
+  { codes:"肺*", att:"HJ", time:"08:00–17:00", clinical:true,
+    rule:"除鄭雅華歸屬胸腔感染科，其餘同仁依照自願與面試結果輪訓，每次輪訓半年。" },
+  { codes:"ACLS", att:"HP", time:"08:00–16:00", clinical:false,
+    rule:"ACLS 屬評鑑要求，本科同仁皆應擁有效期內之 ACLS 證照，排班者自行調整班別，使人員能參與院內課程（ACLS 兩日課程可得 3 年效期，效期滿後可參加一日課程複訓，得延長 2 年效期，限一次）。" },
+  { codes:"V", att:"H2", time:"08:00–17:30", clinical:false,
+    rule:"A. 當 V 為年度長假時，排班者依長假預約系統，呈現預約成功同仁的 V 在初始班表，若長假遇到夜班段落，排班者須提前讓長假預約者去跟其他同仁協調換夜班段落；長假前後原則上給周末放假，但若遇三天以上之連假，不保證能給前後之周末（可能要上周末值班）\nB. 大夜班後第二天之休假，若已超過當月應放天數，排班者得以在初始班表先安排 V，同仁可以斟酌自願放棄，改成出勤。\nC. 同仁在初始班表後若抽到 OFF，可自行選擇使用 V 或補休，應告知排班者。\nD. 當無人有意願放假時，排班者得依照剩餘放假天數，平均分配使用特休。\nE. 特休可保留至下年度，但下一年度須先休完保留天數，再計算當年度 10 天，才可請領國旅卡額度（< 10 天之同仁，若未休完，不得請領國旅卡額度）。" },
+  { codes:"體檢、補休、公、病、喪、產", att:"H2", time:"08:00–17:30", clinical:false,
+    rule:"體檢：2026 年起給一整天休假，惟體檢僅能在初始班表公布後，在可抽人數 > 0 的情況下，由預約者自行填入並給予休假。\n補休：同仁在初始班表後若抽到 OFF，可自行選擇使用 V 或補休，應告知排班者。契約同仁年度補休須於當年度補休完畢或請領加班費，公職同仁補休可於二年內完成補休。\n公：包含奉派公假與奉准公假（如：理監事會議、每年在職進修 20 小時公假等），應取得主任同意後始得提出簽呈申請，需自行協調當天的出勤狀態，排班者不介入，待簽呈出來後，始得要求排班者協助在初始班表冠「公」，也必須自行預 OFF，以免當月休假天數小於應休天數；若上述情況發生，得自行與當月申請特休之同仁要求給予休假，切勿私自更換成其他休假名目。\n病：提出就醫證明與診斷書後，始得申請病假，排班者會直接在班表呈現「病」，切勿私自更換成其他休假名目。\n喪：提出訃聞後，依照「臺中榮民總醫院員工各種假別天數一覽表」提出喪假申請，排班者會直接在班表呈現「喪」，切勿私自更換成其他休假名目。\n產：提出就醫證明與診斷書後，始得申請產假，排班者會直接在班表呈現「產」，切勿私自更換成其他休假名目。" },
+  { codes:"教、品、儀、資、兒", att:"H2", time:"08:00–17:30", clinical:false,
+    rule:"各小組長或指定同仁從事公務日，非臨床人力但可以幫忙，只有在當月 OFF 無人認領時，由各小組長依照需求排班。" },
+  { codes:"國、例、休", att:"—", time:"休假日", clinical:false,
+    rule:"國：依照當月國定假日天數，於當月份休完。\n例：契約專屬，依照四例四休原則，契約排班在周期內的前兩周需有兩個例，且單次上班週期不得超過七天，例不得報加班。\n休：公職人員休假皆為休，契約則是周期內四例四休，休可以報加班。" },
+];
+
+function renderGuide(){
+  document.getElementById("guideBody").innerHTML = CODE_GUIDE.map((g,i)=>`
+    <div class="g-item" data-i="${i}">
+      <button class="g-head" type="button" aria-expanded="false">
+        <span class="g-codes">${g.codes}</span>
+        <span class="g-meta">
+          <span>${g.att} · ${g.time}</span>
+          <span class="g-flag ${g.clinical?'yes':'no'}">${g.clinical?'臨床人力':'不當人力'}</span>
+          <span class="g-more">排班原則 ⌄</span>
+        </span>
+      </button>
+      <div class="g-rule" hidden>${g.rule}</div>
+    </div>`).join("");
+}
+
 // 解析單一班別代碼 → 區域 / 公務機 / 職責
 // cat: day｜small｜big｜other｜rest
 function resolveInfo(raw, isWeekend){
@@ -966,7 +1068,7 @@ function renderCalendar(){
     html+=`<div class="cell ${isToday?'today':''} ${dowCls}" onclick="openModal(${d})">
       ${isMarked(curStaff,curYear,curMonth,d)?'<span class="edited-dot"></span>':''}
       <div class="c-date">${d}</div>
-      <div class="badge t-${type} ${badgeCls(label)}">${fmtBadge(label)}</div>
+      <div class="badge t-${colorType(label,type)} ${badgeCls(label)}">${fmtBadge(label)}</div>
       <div class="c-time">${time}${tcSuffix(type)}</div></div>`;
   }
   grid.innerHTML=html; renderStats();
@@ -1017,7 +1119,7 @@ function renderInfoPanel(info){
       <span class="info-area">休假 / 不出勤</span></div>`;
   }
   let h=`<div class="info-top">
-    <span class="info-badge t-${info.badge}">${info.label}</span>
+    <span class="info-badge t-${colorType(info.label,info.badge)}">${info.label}</span>
     <span class="info-area">${info.area}</span>
     ${info.phone?`<a class="phone-chip info-phone" href="tel:${info.phone}">分機 ${info.phone}</a>`:''}
   </div>`;
@@ -1200,7 +1302,7 @@ function renderMaster(){
       const raw=getShift(name,y,mo,d);
       const {type,label}=classify(raw);
       const ed=isMarked(name,y,mo,d)?" m-edited":"";
-      body+=`<td class="mc-${type}${ed}" onclick="openModal(${d},'${name.replace(/'/g,"\\'")}')">${label==="—"?"":label}</td>`;
+      body+=`<td class="mc-${colorType(label,type)}${ed}" onclick="openModal(${d},'${name.replace(/'/g,"\\'")}')">${label==="—"?"":label}</td>`;
     }
     body+=`</tr>`;
   });
@@ -1243,7 +1345,28 @@ function renderActive(){
   else if(view==="day") renderDayView();
   else renderCalendar();
 }
-renderDOW();initSelect();render();
+// ── 班別代碼資訊框：外層展開 + 每組排班原則各自展開 ──
+(function(){
+  const wrap=document.getElementById("guide");
+  const body=document.getElementById("guideBody");
+  const toggle=document.getElementById("guideToggle");
+  toggle.onclick=()=>{
+    const open=wrap.classList.toggle("open");
+    body.hidden=!open;
+    toggle.setAttribute("aria-expanded",String(open));
+    toggle.querySelector(".guide-hint").textContent=open?"點擊收合":"點擊查看";
+  };
+  body.addEventListener("click",e=>{
+    const head=e.target.closest(".g-head"); if(!head) return;
+    const item=head.parentElement, rule=item.querySelector(".g-rule");
+    const open=item.classList.toggle("open");
+    rule.hidden=!open;
+    head.setAttribute("aria-expanded",String(open));
+    head.querySelector(".g-more").textContent=open?"收合 ⌃":"排班原則 ⌄";
+  });
+})();
+
+renderDOW();initSelect();renderGuide();render();
 </script>
 </body>
 </html>
