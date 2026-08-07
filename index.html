@@ -317,6 +317,37 @@
   .info-note { font-size: 11.5px; color: var(--ink-3); margin-top: 12px; padding-top: 11px; border-top: 1px solid var(--line-2); line-height: 1.55; }
   .edit-head { font-size: 12px; color: var(--ink-2); margin-bottom: 10px; font-weight: 600; letter-spacing: .04em; }
 
+  /* ── 卡號登入閘門 ─────────────────────────────
+     注意：純前端驗證，只是「門檻」而非存取控制。頁面與資料本身仍為公開。 */
+  .gate {
+    position: fixed; inset: 0; z-index: 500; background: var(--paper);
+    display: flex; align-items: center; justify-content: center;
+    padding: 24px calc(20px + env(safe-area-inset-right)) 24px calc(20px + env(safe-area-inset-left));
+    overflow-y: auto;
+  }
+  .gate-box {
+    width: 100%; max-width: 360px; background: var(--card);
+    border: 1px solid var(--line); border-radius: var(--r-card);
+    box-shadow: var(--sh-card); padding: 28px 24px 22px;
+  }
+  .gate-brand { font-size: 10.5px; font-weight: 600; letter-spacing: .18em; color: var(--teal); text-transform: uppercase; }
+  .gate-title { font-size: 22px; font-weight: 700; letter-spacing: .04em; color: var(--teal-ink); margin-top: 4px; }
+  .gate-sub { font-size: 13px; color: var(--ink-2); line-height: 1.6; margin: 10px 0 20px; }
+  .gate-box label { display: block; font-size: 12px; color: var(--ink-2); margin-bottom: 6px; font-weight: 600; }
+  .gate-box input {
+    width: 100%; margin-bottom: 14px; padding: 11px 13px; background: var(--card);
+    border: 1px solid var(--line-2); border-radius: 9px; color: var(--ink);
+    font-family: inherit; font-size: 16px;   /* ≥16px 避免 iOS 聚焦時自動放大 */
+  }
+  .gate-box input:focus { outline: none; border-color: var(--teal); box-shadow: 0 0 0 3px var(--teal-wash); }
+  .gate-err {
+    font-size: 12.5px; color: var(--sun); background: rgba(180,72,91,.08);
+    border-radius: 8px; padding: 9px 11px; margin-bottom: 14px; line-height: 1.5;
+  }
+  .gate-submit { width: 100%; padding: 13px; font-size: 15px; }
+  .gate-note { font-size: 11.5px; color: var(--ink-3); text-align: center; margin-top: 16px; line-height: 1.5; }
+  body.gated > header, body.gated > main { display: none; }
+
   /* ── 班別代碼與排班原則（可展開資訊框）───────── */
   .guide { margin-top: 20px; }
   .guide-toggle {
@@ -537,6 +568,21 @@
 </style>
 </head>
 <body>
+<div class="gate" id="gate" hidden>
+  <form class="gate-box" id="gateForm" autocomplete="on">
+    <div class="gate-brand">臺中榮總 · 呼吸治療科</div>
+    <div class="gate-title">班表系統</div>
+    <p class="gate-sub">請以卡號登入，帳號與密碼皆為您的卡號。</p>
+    <label for="gateUser">帳號</label>
+    <input id="gateUser" type="text" placeholder="卡號" autocomplete="username"
+           autocapitalize="characters" autocorrect="off" spellcheck="false">
+    <label for="gatePass">密碼</label>
+    <input id="gatePass" type="password" placeholder="卡號" autocomplete="current-password">
+    <div class="gate-err" id="gateErr" hidden></div>
+    <button class="btn btn-primary gate-submit" type="submit">登入</button>
+    <p class="gate-note">本頁僅供科內同仁查閱班表使用。</p>
+  </form>
+</div>
 <header>
   <div class="brand">
     <div class="brand-eyebrow">臺中榮總 · 呼吸治療科</div>
@@ -587,6 +633,7 @@
       <button class="tb-btn" id="btnExport">匯出備份</button>
       <button class="tb-btn" id="btnImport">匯入備份</button>
       <button class="tb-btn tb-danger" id="btnClearAll">清除所有修改</button>
+      <button class="tb-btn" id="btnLogout">登出</button>
     </span>
     <input type="file" id="importFile" accept="application/json" style="display:none">
   </div>
@@ -1421,6 +1468,69 @@ function renderActive(){
   else if(view==="day") renderDayView();
   else renderCalendar();
 }
+// ─────────────────────────────────────────────
+//  卡號登入閘門
+//  ⚠ 純前端驗證。班表資料本身仍隨頁面下載，具技術能力者可繞過。
+//     用途是擋掉隨手點進來的人，不是存取控制。
+// ─────────────────────────────────────────────
+const AUTH_KEY = "rt_schedule_auth_v1";
+const normCard = c => String(c==null?"":c).trim().toUpperCase();
+function cardOwner(card){
+  const c = normCard(card);
+  if(!c) return null;
+  for(const name in CARDS) if(normCard(CARDS[name]) === c) return name;
+  return null;
+}
+function openGate(){
+  document.getElementById("gate").hidden = false;
+  document.body.classList.add("gated");
+  setTimeout(()=>{ const u=document.getElementById("gateUser"); if(u) u.focus(); }, 50);
+}
+function closeGate(){
+  document.getElementById("gate").hidden = true;
+  document.body.classList.remove("gated");
+}
+function initGate(){
+  const form=document.getElementById("gateForm");
+  const err=document.getElementById("gateErr");
+  const fail=msg=>{ err.textContent=msg; err.hidden=false; };
+
+  let authed=null;
+  try{ authed = localStorage.getItem(AUTH_KEY); }catch(e){ authed=null; }
+  if(authed && cardOwner(authed)) closeGate(); else openGate();
+
+  form.onsubmit=e=>{
+    e.preventDefault();
+    const u=normCard(document.getElementById("gateUser").value);
+    const p=normCard(document.getElementById("gatePass").value);
+    if(!u || !p) return fail("請輸入卡號。");
+    if(u!==p)   return fail("帳號與密碼需相同，兩者皆為您的卡號。");
+    const name=cardOwner(u);
+    if(!name)   return fail("查無此卡號。請確認大小寫與英文字母，或聯絡排班者。");
+    try{ localStorage.setItem(AUTH_KEY,u); }catch(e){ /* 無痕模式：本次階段有效 */ }
+    err.hidden=true;
+    closeGate();
+    // 登入者即本人：未另行釘選時，直接切到自己的班表
+    if(!pinnedStaff){
+      curStaff=name;
+      const sel=document.getElementById("staffSelect");
+      if(![...sel.options].some(o=>o.value===name)){
+        const o=document.createElement("option"); o.value=name; o.textContent=name; sel.appendChild(o);
+      }
+      sel.value=name;
+    }
+    renderActive();
+  };
+
+  document.getElementById("btnLogout").onclick=()=>{
+    try{ localStorage.removeItem(AUTH_KEY); }catch(e){}
+    document.getElementById("gateUser").value="";
+    document.getElementById("gatePass").value="";
+    document.getElementById("gateErr").hidden=true;
+    openGate();
+  };
+}
+
 // ── 班別代碼資訊框：外層展開 + 每組排班原則各自展開 ──
 (function(){
   const wrap=document.getElementById("guide");
@@ -1442,7 +1552,7 @@ function renderActive(){
   });
 })();
 
-renderDOW();initSelect();renderGuide();render();
+renderDOW();initSelect();renderGuide();render();initGate();
 </script>
 </body>
 </html>
