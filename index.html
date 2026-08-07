@@ -858,11 +858,14 @@ function classify(raw) {
 function classifyRaw(raw) {
   if (raw == null || raw === "") return { type:"normal", label:"—", time:"08:00–17:30" };
   const s = String(raw).trim();
-  // 不出勤：休/國/V/例/病/公/補休/複檢/延病/補/留停(L, L+查)/V補
-  if (/^(休|國|V|例|病|公|補|複檢|延病|L)$/.test(s)
+  // 總組長行政班（L+查）：非臨床人力，但仍出勤 —— 比照 H2，需列入本日出勤。
+  // 必須排在「不出勤」判斷之前。
+  if (/^L(\+|＋)查$/.test(s)) return { type:"normal", label:s, time:"08:00–17:30" };
+  // 不出勤：休/國/V/例/病/公/補休/複檢/延病/補/V補
+  if (/^(休|國|V|例|病|公|補|複檢|延病)$/.test(s)
       || /^休\d*$/.test(s) || /^例\d*$/.test(s) || /^病\d*$/.test(s)
-      || /^L(\+|＋)?查?$/.test(s) || /^V[／/]補$/.test(s)
-      || /補休/.test(s) || /延病/.test(s) || /^L/.test(s))
+      || /^V[／/]補$/.test(s)
+      || /補休/.test(s) || /延病/.test(s))
     return { type:"rest", label:s, time:"休假 / 不出勤" };
   // 行政/活動日（一般日班時間）
   if (/(品營日|機器日|儀器日|資訊日|兒醫日|教學日|ACLS)/.test(s))
@@ -929,6 +932,8 @@ const AREA = {
            duty:["清潔日"]},
   "肺*":  {ord:17, label:"肺*",    area:"肺復原門診",                beds:"",          phone:"83159", time:"08:00–17:00", noon:"", noNote:true,
            duty:["肺部復原運動","肺功能檢查"]},
+  "L+查": {ord:18, label:"L+查",   area:"行政班（總組長）",           beds:"",          phone:"3373", time:"08:00–17:30", noon:"", noNote:true,
+           duty:["行政業務","非臨床人力，但可支援臨床"]},
 };
 
 // 夜班 / 假日白班 A~D 分組
@@ -956,7 +961,7 @@ const ACTIVITY = /^(品營日|機器日|儀器日|資訊日|兒醫日|教學日|
 //   2. 考勤代碼不屬於圖例五色（XJ / H2 / XD / XF）：肺*（HJ）、ACLS（HP）
 // 休/國/V/例/病/公/補休/L+查 在 classify 已歸為 rest，本來就是灰的。
 // 只換顏色，不動 type/cat —— 統計與本日出勤的分區邏輯維持原樣。
-const GREY_CODES = /^(ACLS|品營日|機器日|儀器日|資訊日|兒醫日|教學日|體檢|喪|產|清\*|肺\*)$/;
+const GREY_CODES = /^(ACLS|品營日|機器日|儀器日|資訊日|兒醫日|教學日|體檢|喪|產|清\*|肺\*|L(\+|＋)查)$/;
 const colorType = (code, type) => GREY_CODES.test(String(code==null?"":code).trim()) ? "rest" : type;
 
 // ─────────────────────────────────────────────
