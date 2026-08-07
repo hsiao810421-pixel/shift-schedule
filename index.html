@@ -312,7 +312,11 @@
     box-shadow: var(--sh-card); cursor: pointer; font-family: inherit; text-align: left;
     transition: border-color .16s var(--ease);
   }
-  .guide-toggle:hover { border-color: var(--teal); }
+  /* 觸控裝置點擊後 :hover 會殘留，導致部分卡片一直有底色、部分沒有 —— 只在真有游標時套用 */
+  @media (hover: hover) {
+    .guide-toggle:hover { border-color: var(--teal); }
+    .g-head:hover { background: var(--teal-wash); }
+  }
   .guide-title { font-size: 14.5px; font-weight: 700; color: var(--ink); letter-spacing: .02em; }
   .guide-hint { font-size: 12px; color: var(--ink-3); margin-left: auto; }
   .guide-chev { font-size: 13px; color: var(--ink-3); transition: transform .18s var(--ease); line-height: 1; }
@@ -324,16 +328,17 @@
     width: 100%; display: block; padding: 11px 14px; background: none; border: none;
     font-family: inherit; text-align: left; cursor: pointer;
   }
-  .g-head:hover { background: var(--teal-wash); }
   .g-codes { display: block; font-size: 13px; font-weight: 600; color: var(--ink); line-height: 1.55; }
   .g-meta { display: flex; align-items: center; gap: 8px; margin-top: 5px; font-size: 11.5px; color: var(--ink-3); }
   .g-flag { font-size: 10.5px; font-weight: 600; padding: 2px 9px; border-radius: var(--r-chip); }
   .g-flag.yes { background: var(--c-h2-bg); color: var(--c-h2-fg); }
   .g-flag.no  { background: var(--c-off-bg); color: var(--c-off-fg); }
   .g-more { margin-left: auto; color: var(--teal-deep); font-weight: 600; }
-  /* 排班原則原文含換行與 A./B./C. 條列，用 pre-line 保留 */
+  /* 排班原則原文含換行與 A./B./C. 條列，用 pre-line 保留。
+     左右用 margin 而非 padding，讓文字與上方代碼切齊在同一條垂直線（皆距卡片邊 14px），
+     分隔線也隨之內縮對齊。 */
   .g-rule {
-    padding: 11px 14px 13px; margin: 0 14px; border-top: 1px solid var(--line);
+    margin: 0 14px; padding: 11px 0 13px; border-top: 1px solid var(--line);
     font-size: 12.5px; line-height: 1.75; color: var(--ink-2); white-space: pre-line;
   }
 
