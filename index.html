@@ -548,7 +548,7 @@
     <div class="legend-item"><span class="legend-dot" style="background:var(--c-h2-fg)"></span>8-5半（H2）08:00–17:30</div>
     <div class="legend-item"><span class="legend-dot" style="background:var(--c-sm-fg)"></span>小夜（XD）15:30–24:00</div>
     <div class="legend-item"><span class="legend-dot" style="background:var(--c-bg-fg)"></span>大夜（XF）23:30–08:00</div>
-    <div class="legend-item"><span class="legend-dot" style="background:var(--c-off-fg)"></span>休 / 國 / V / 例 / 病</div>
+    <div class="legend-item"><span class="legend-dot" style="background:var(--c-off-fg)"></span>休假 / 不當人力</div>
   </div>
   <div class="cal-header" id="calHeader"></div>
   <div class="cal-grid" id="calGrid"></div>
@@ -847,7 +847,15 @@ const monthOrder = (mk) => REMOTE[mk] ? REMOTE[mk].order
   : (MONTHS[mk] ? MONTHS[mk].staff.map(s=>s.name) : STAFF_NAMES);
 const monthHasData = (mk) => !!REMOTE[mk] || !!BASE[mk];
 
+// 依試算表，這兩個班別的時段不同於其 classify 類型的預設值
+const CODE_TIME = { "肺*":"08:00–17:00", "ACLS":"08:00–16:00" };
+// 包一層，統一套用時段覆寫，避免每個呼叫端各自處理
 function classify(raw) {
+  const r = classifyRaw(raw);
+  const t = CODE_TIME[String(raw==null?"":raw).trim()];
+  return t ? Object.assign({}, r, { time:t }) : r;
+}
+function classifyRaw(raw) {
   if (raw == null || raw === "") return { type:"normal", label:"—", time:"08:00–17:30" };
   const s = String(raw).trim();
   // 不出勤：休/國/V/例/病/公/補休/複檢/延病/補/留停(L, L+查)/V補
@@ -873,7 +881,10 @@ function classify(raw) {
 // ─────────────────────────────────────────────
 // 時段代碼（依 classify 類型）：早班/8-4=XJ、白班=H2、小夜=XD、大夜=XF
 const TIMECODE = { early:"XJ", eight:"XJ", normal:"H2", small:"XD", big:"XF" };
-const tcSuffix = (t) => TIMECODE[t] ? `（${TIMECODE[t]}）` : "";
+// 依試算表，這兩個班別有自己的考勤代碼，不隨 classify 類型走
+const CODE_TIMECODE = { "肺*":"HJ", "ACLS":"HP" };
+const tcOf = (code, t) => CODE_TIMECODE[String(code==null?"":code).trim()] || TIMECODE[t];
+const tcSuffix = (code, t) => { const c = tcOf(code, t); return c ? `（${c}）` : ""; };
 // 班別標籤一律單行：依「字寬單位」分級縮字（全形算 2、半形算 1），
 // 手機格內文字空間約 40px。折行會讓同一列的標籤高低不一，改用縮字保持整個網格對齊。
 function badgeUnits(s){ return [...String(s)].reduce((n,c)=>n+(c.charCodeAt(0)>0x2E80?2:1),0); }
@@ -916,7 +927,7 @@ const AREA = {
            duty:["CPT 會診","CCRT 會診","PERIO＋ERAS，週二 9 點團體衛教","協助病房組換管"]},
   "清*":  {ord:16, label:"清消*",  area:"清消 / 機動（*班）",        beds:"",          phone:"",     time:"07:45–16:15", noon:"", noNote:true,
            duty:["清潔日"]},
-  "肺*":  {ord:17, label:"肺*",    area:"肺復原門診",                beds:"",          phone:"83159", time:"07:45–16:15", noon:"", noNote:true,
+  "肺*":  {ord:17, label:"肺*",    area:"肺復原門診",                beds:"",          phone:"83159", time:"08:00–17:00", noon:"", noNote:true,
            duty:["肺部復原運動","肺功能檢查"]},
 };
 
@@ -940,12 +951,13 @@ const HOLIDAY_DAY = {
 };
 const ACTIVITY = /^(品營日|機器日|儀器日|資訊日|兒醫日|教學日|ACLS)$/;
 
-// 非臨床人力（不當人力）班別 → 一律以灰色呈現。
-// 休/國/V/例/病/公/補休/L+查 在 classify 已歸為 rest（本來就是灰的），
-// 這裡補上仍算出勤、但不列入臨床人力的公務日與課程。
+// 以灰色呈現的班別。兩種情形：
+//   1. 非臨床人力（不當人力）：ACLS、公務日（教/品/儀/資/兒、機器日）、體檢/喪/產、清*
+//   2. 考勤代碼不屬於圖例五色（XJ / H2 / XD / XF）：肺*（HJ）、ACLS（HP）
+// 休/國/V/例/病/公/補休/L+查 在 classify 已歸為 rest，本來就是灰的。
 // 只換顏色，不動 type/cat —— 統計與本日出勤的分區邏輯維持原樣。
-const NON_CLINICAL = /^(ACLS|品營日|機器日|儀器日|資訊日|兒醫日|教學日|體檢|喪|產)$/;
-const colorType = (code, type) => NON_CLINICAL.test(String(code==null?"":code).trim()) ? "rest" : type;
+const GREY_CODES = /^(ACLS|品營日|機器日|儀器日|資訊日|兒醫日|教學日|體檢|喪|產|清\*|肺\*)$/;
+const colorType = (code, type) => GREY_CODES.test(String(code==null?"":code).trim()) ? "rest" : type;
 
 // ─────────────────────────────────────────────
 //  班別代碼與排班原則（來源：科內「班別代碼跟班表的關係」試算表）
@@ -1028,7 +1040,7 @@ function resolveInfo(raw, isWeekend){
              note: (!a.noNote && a.time.startsWith("07:45")) ? "週間白班 CU 同仁需紀錄 2 次（白天、下午）。" : "" };
   }
   if (ACTIVITY.test(s))
-    return { cat:"other", label:s, area:"行政 / 課程", phone:"", time:"08:00–17:30", duty:[], badge:"normal" };
+    return { cat:"other", label:s, area:"行政 / 課程", phone:"", time:base.time, duty:[], badge:"normal" };
   return { cat:"other", label:s, area:s, phone:"", time:base.time, duty:[], badge:base.type };
 }
 const phoneChip = (p) => p
@@ -1069,7 +1081,7 @@ function renderCalendar(){
       ${isMarked(curStaff,curYear,curMonth,d)?'<span class="edited-dot"></span>':''}
       <div class="c-date">${d}</div>
       <div class="badge t-${colorType(label,type)} ${badgeCls(label)}">${fmtBadge(label)}</div>
-      <div class="c-time">${time}${tcSuffix(type)}</div></div>`;
+      <div class="c-time">${time}${tcSuffix(label,type)}</div></div>`;
   }
   grid.innerHTML=html; renderStats();
 }
@@ -1123,7 +1135,7 @@ function renderInfoPanel(info){
     <span class="info-area">${info.area}</span>
     ${info.phone?`<a class="phone-chip info-phone" href="tel:${info.phone}">分機 ${info.phone}</a>`:''}
   </div>`;
-  h+=`<div class="info-row"><b>時間</b>${info.time}${tcSuffix(info.badge)}${info.beds?`　·　${info.beds}`:''}</div>`;
+  h+=`<div class="info-row"><b>時間</b>${info.time}${tcSuffix(info.label,info.badge)}${info.beds?`　·　${info.beds}`:''}</div>`;
   if(info.group) h+=`<div class="info-row"><b>組別</b>${info.group} 組（公務機 #${info.phone||"—"}）</div>`;
   if(info.duty&&info.duty.length) h+=`<ul class="duty-list">${info.duty.map(x=>`<li>${x}</li>`).join("")}</ul>`;
   if(info.noon) h+=`<div class="info-row"><b>中午值班</b>${info.noon}</div>`;
