@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -565,6 +565,11 @@
     *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
     .cell:active, .btn:active, .nav-btn:active, .duty-row:active { transform: none; }
   }
+
+  /* ── 嵌入模式（?embed=day）：只顯示本日出勤、免登入，供 RT 隨身站 iframe ── */
+  body.embed header,
+  body.embed #gate { display: none !important; }
+  body.embed main { padding-top: 10px; }
 </style>
 </head>
 <body>
@@ -1552,7 +1557,17 @@ function initGate(){
   });
 })();
 
-renderDOW();initSelect();renderGuide();render();initGate();
+renderDOW();initSelect();renderGuide();render();
+
+// 嵌入模式：?embed=day → 只顯示「本日出勤」、鎖定今天、免登入（供 RT 隨身站儀表板 iframe）
+if(/[?&]embed=day\b/.test(location.search)){
+  document.body.classList.add("embed");
+  try{ closeGate(); }catch(e){}
+  dayDate=new Date(); dayDate.setHours(0,0,0,0);
+  setView("day");
+} else {
+  initGate();
+}
 </script>
 </body>
 </html>
