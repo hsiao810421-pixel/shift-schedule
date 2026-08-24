@@ -689,7 +689,8 @@ const CARDS = {
   "徐桂芳":"4160","黃姿穎":"I353","陳姿勻":"G270","李佩雅":"E511","藍子晴":"J501",
   "李靜怡":"4710","巫禹呈":"H343","許純怡":"B215","王淑惠":"1649","洪逸慈":"G319",
   "張維倫":"E601","張茹昀":"F851","劉秀英":"6313","陳家榛":"A594","李曼瑄":"G630",
-  "楊惠喬":"6437","程清福":"2886","傅偉菱":"B011","鄭雅華":"A226"
+  "楊惠喬":"6437","程清福":"2886","傅偉菱":"B011","鄭雅華":"A226",
+  "唐萱妤":"K081"
 };
 
 // 各月班表。key = "YYYY-M"（M 為 0-indexed 月份）。每人 d 陣列＝該月每日班別。
@@ -815,7 +816,12 @@ const MONTHS = {
 
 // 月份索引（新到舊），預設顯示最新月份
 const MONTH_KEYS = Object.keys(MONTHS).sort().reverse(); // ["2026-6","2026-5"]
-const [DEF_Y, DEF_M] = MONTH_KEYS[0].split("-").map(Number);
+// 預設顯示月份：以「今天所在月份」為準（雲端試算表會有該月分頁）；
+// 若今天早於內建資料的最新月份，才退回內建最新月。
+const [BASE_Y, BASE_M] = MONTH_KEYS[0].split("-").map(Number);
+const _t0 = new Date();
+const [DEF_Y, DEF_M] = (_t0.getFullYear()*12+_t0.getMonth() >= BASE_Y*12+BASE_M)
+  ? [_t0.getFullYear(), _t0.getMonth()] : [BASE_Y, BASE_M];
 
 // 建立每月查詢結構：BASE["YYYY-M"][name] = {1:..,2:..}
 const BASE = {};
@@ -833,7 +839,9 @@ MONTH_KEYS.forEach(k => MONTHS[k].staff.forEach(s => { if(!STAFF_NAMES.includes(
 // ─────────────────────────────────────────────
 //  雲端班表（Google 試算表自動載入）
 //  一個試算表、每月一個分頁，分頁名稱＝「YYYY-MM」（例：2026-08）
-//  分頁第一列：姓名, 卡號, 1, 2, …, 31；其後每人一列。
+//  分頁排版自動偵測（locateTable）：找出「日期表頭列」（1,2,3… 遞增的那一列），
+//  其下方凡是 A 欄有姓名、B 欄是卡號的列即為人員列。上方的標題／備註列、
+//  右側的次月與統計欄位一律略過。舊版（第一列即 姓名,卡號,1..31）同樣適用。
 //  試算表需設定「知道連結的人 → 檢視者」。讀不到時自動改用內建資料。
 // ─────────────────────────────────────────────
 const SHEET_ID = "1smuAeRccJJByyyOzmG_Q7GhHSSRL0_Jphl_Jqnh3jhU";
@@ -862,24 +870,49 @@ function parseCSV(text){
   if(cur!==""||row.length){ row.push(cur); rows.push(row); }
   return rows;
 }
+// 從整張分頁的二維陣列中定位表格：日期表頭列 + 人員列。
+// 相容新舊排版；找不到（分頁不存在或格式不符）回傳 null。
+const CARD_RE=/^[A-Za-z]?\d{3,4}$/;
+const cellText=v=>String(v==null?"":v).trim();
+const codeText=v=>cellText(v).replace(/\s+/g,"");   // 班別代碼不含空白；試算表內換行會被轉成空白
+const dayNum=t=>/^\d+(?:\.0+)?$/.test(t)?parseInt(t,10):NaN;
+function locateTable(rows){
+  let hr=-1, dayCols=[];
+  for(let r=0;r<Math.min(rows.length,15);r++){
+    const cols=[]; let last=0;
+    for(let c=0;c<rows[r].length;c++){
+      const n=dayNum(cellText(rows[r][c]));
+      if(isNaN(n)) continue;
+      if(n<=last || n>31) break;      // 數字不再遞增＝已進入次月／統計欄，到此為止
+      cols.push([c,n]); last=n;
+    }
+    if(cols.length>=15){ hr=r; dayCols=cols; break; }   // 一個月至少 15 天以上的欄位
+  }
+  if(hr<0) return null;
+  const people=[];
+  for(let r=hr+1;r<rows.length;r++){
+    const name=cellText(rows[r][0]), card=cellText(rows[r][1]);
+    if(!name) continue;
+    if(!(CARD_RE.test(card) || CARDS[name])) continue;  // 排除星期／卡號／統計等非人員列
+    people.push({name,card,row:rows[r],ri:r});
+  }
+  return people.length ? {hr,dayCols,people} : null;
+}
 async function fetchRemoteMonth(y,mo){
   const mk=`${y}-${mo}`, tab=monthTabName(y,mo);
-  const url=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&headers=1&sheet=${encodeURIComponent(tab)}`;
+  const url=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&headers=0&sheet=${encodeURIComponent(tab)}`;
   try{
     const res=await fetch(url,{cache:"no-store"});
     const txt=await res.text();
-    const rows=parseCSV(txt);
-    if(rows.length<2 || !rows[0].some(h=>/^\d+$/.test(String(h).trim()))){ remoteState[mk]="empty"; return false; }
-    const header=rows[0], dayCols=[];
-    header.forEach((h,i)=>{ const t=String(h).trim(); if(/^\d+$/.test(t)) dayCols.push([i,parseInt(t,10)]); });
+    const t=locateTable(parseCSV(txt));
+    if(!t){ remoteState[mk]="empty"; return false; }
     const order=[], data={};
-    for(let r=1;r<rows.length;r++){
-      const row=rows[r], name=(row[0]||"").trim(); if(!name) continue;
+    t.people.forEach(({name,card,row})=>{
       order.push(name);
-      const m={}; dayCols.forEach(([ci,dn])=>{ m[dn]=(row[ci]||"").trim(); });
+      const m={}; t.dayCols.forEach(([ci,dn])=>{ m[dn]=codeText(row[ci]); });
       data[name]=m;
-      const card=(row[1]||"").trim(); if(card && !CARDS[name]) CARDS[name]=card;
-    }
+      if(card && !CARDS[name]) CARDS[name]=card;
+    });
     REMOTE[mk]={order,data}; remoteState[mk]="ok";
     return true;
   }catch(e){ remoteState[mk]="error"; console.warn("雲端班表載入失敗（改用內建資料）：",tab,e); return false; }
@@ -897,14 +930,13 @@ async function fetchRedMarks(y,mo){
     const res=await fetch(`${REDMARK_URL}?sheet=${encodeURIComponent(tab)}`);
     const j=await res.json();
     if(!j || !j.values || !j.colors) return;
-    const header=j.values[0]||[], dayCols=[];
-    header.forEach((h,i)=>{ if(/^\d+$/.test(String(h).trim())) dayCols.push([i,parseInt(h,10)]); });
+    const t=locateTable(j.values);
+    if(!t) return;
     const set=new Set();
-    for(let r=1;r<j.values.length;r++){
-      const name=(j.values[r][0]||"").trim(); if(!name) continue;
-      const crow=j.colors[r]||[];
-      dayCols.forEach(([ci,dn])=>{ if(isRedHex(crow[ci])) set.add(name+"|"+dn); });
-    }
+    t.people.forEach(({name,ri})=>{
+      const crow=j.colors[ri]||[];
+      t.dayCols.forEach(([ci,dn])=>{ if(isRedHex(crow[ci])) set.add(name+"|"+dn); });
+    });
     REDMARK[mk]=set;
   }catch(e){ console.warn("紅字標記讀取失敗（不影響班表）：",tab,e); }
 }
@@ -928,7 +960,7 @@ const monthOrder = (mk) => REMOTE[mk] ? REMOTE[mk].order
 const monthHasData = (mk) => !!REMOTE[mk] || !!BASE[mk];
 
 // 依試算表，這兩個班別的時段不同於其 classify 類型的預設值
-const CODE_TIME = { "肺*":"08:00–17:00", "ACLS":"08:00–16:00" };
+const CODE_TIME = { "肺*":"08:00–17:00", "ACLS":"08:00–16:00", "HP":"08:00–16:00" };
 // 包一層，統一套用時段覆寫，避免每個呼叫端各自處理
 function classify(raw) {
   const r = classifyRaw(raw);
@@ -965,7 +997,7 @@ function classifyRaw(raw) {
 // 時段代碼（依 classify 類型）：早班/8-4=XJ、白班=H2、小夜=XD、大夜=XF
 const TIMECODE = { early:"XJ", eight:"XJ", normal:"H2", small:"XD", big:"XF" };
 // 依試算表，這兩個班別有自己的考勤代碼，不隨 classify 類型走
-const CODE_TIMECODE = { "肺*":"HJ", "ACLS":"HP" };
+const CODE_TIMECODE = { "肺*":"HJ", "ACLS":"HP", "HP":"HP" };
 const tcOf = (code, t) => CODE_TIMECODE[String(code==null?"":code).trim()] || TIMECODE[t];
 const tcSuffix = (code, t) => { const c = tcOf(code, t); return c ? `（${c}）` : ""; };
 // 班別標籤一律單行：依「字寬單位」分級縮字（全形算 2、半形算 1），
@@ -1034,14 +1066,14 @@ const HOLIDAY_DAY = {
   C:{area:"CVCU（30）＋RCC（12）＋POR A.B.C＋ER 病房",     clean:"協助擦機器"},
   D:{area:"RICU（20）＋二醫病房＋NICU（18）＋PICU（15）",   clean:"協助擦機器"},
 };
-const ACTIVITY = /^(品營日|機器日|儀器日|資訊日|兒醫日|教學日|ACLS)$/;
+const ACTIVITY = /^(品營日|機器日|儀器日|資訊日|兒醫日|教學日|ACLS|HP)$/;
 
 // 以灰色呈現的班別。兩種情形：
 //   1. 非臨床人力（不當人力）：ACLS、公務日（教/品/儀/資/兒、機器日）、體檢/喪/產、清*
 //   2. 考勤代碼不屬於圖例五色（XJ / H2 / XD / XF）：肺*（HJ）、ACLS（HP）
 // 休/國/V/例/病/公/補休/L+查 在 classify 已歸為 rest，本來就是灰的。
 // 只換顏色，不動 type/cat —— 統計與本日出勤的分區邏輯維持原樣。
-const GREY_CODES = /^(ACLS|品營日|機器日|儀器日|資訊日|兒醫日|教學日|體檢|喪|產|清\*|肺\*|L(\+|＋)查)$/;
+const GREY_CODES = /^(ACLS|HP|品營日|機器日|儀器日|資訊日|兒醫日|教學日|體檢|喪|產|清\*|肺\*|L(\+|＋)查)$/;
 const colorType = (code, type) => GREY_CODES.test(String(code==null?"":code).trim()) ? "rest" : type;
 
 // ─────────────────────────────────────────────
@@ -1258,11 +1290,24 @@ function renderInfoPanel(info){
   if(info.note) h+=`<div class="info-note">${info.note}</div>`;
   return h;
 }
+// 國定假日（如中秋連假）雖不是週六日，排班一樣採假日 A/B/C/D 分組。
+// 不維護假日表，改由當日班表自證：出現 2 組以上「X8-4」即為假日模式。
+// （實測 2026-08／09 全月：假日一律 4 組、平日一律 0 組。）
+function isHolidayMode(y,mo,d){
+  const dow=new Date(y,mo,d).getDay();
+  if(dow===0||dow===6) return true;
+  const g=new Set();
+  monthOrder(`${y}-${mo}`).forEach(name=>{
+    const m=/^([ABCD])\s*8\s*[-－]\s*4$/.exec(String(getShift(name,y,mo,d)||"").trim());
+    if(m) g.add(m[1]);
+  });
+  return g.size>=2;
+}
 function openModal(d, staff, y, mo){
   editDay=d; editStaff=staff||curStaff;
   editYear=(y===undefined?curYear:y); editMonth=(mo===undefined?curMonth:mo);
   const dow=new Date(editYear,editMonth,d).getDay();
-  const isWe=(dow===0||dow===6);
+  const isWe=isHolidayMode(editYear,editMonth,d);
   document.getElementById("mTitle").textContent=editStaff;
   document.getElementById("mSub").textContent=`${editMonth+1}月${d}日（週${DOW[dow]}）`;
   const info=resolveInfo(getShift(editStaff,editYear,editMonth,d),isWe);
@@ -1329,7 +1374,7 @@ function dutyRow(area, sub, name, phone, click){
 function renderDayView(){
   const y=dayDate.getFullYear(), mo=dayDate.getMonth(), d=dayDate.getDate(), dow=dayDate.getDay();
   ensureRemote(y,mo,renderDayView);
-  const isWe=(dow===0||dow===6);
+  const isWe=isHolidayMode(y,mo,d);
   const mk=`${y}-${mo}`;
   document.getElementById("dayLabel").textContent=`${mo+1}/${d}`;
   const hasData=monthHasData(mk);
