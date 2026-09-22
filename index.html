@@ -967,14 +967,16 @@ function classify(raw) {
   const t = CODE_TIME[String(raw==null?"":raw).trim()];
   return t ? Object.assign({}, r, { time:t }) : r;
 }
+// 假日白班分組代碼。115-10 起科內把「A8-4」改寫成「A84*」，兩種寫法都要認得。
+const EIGHT_GROUP = /^([ABCD])\s*8\s*[-－]?\s*4\s*\*?$/;
 function classifyRaw(raw) {
   if (raw == null || raw === "") return { type:"normal", label:"—", time:"08:00–17:30" };
   const s = String(raw).trim();
   // 總組長行政班（L+查）：非臨床人力，但仍出勤 —— 比照 H2，需列入本日出勤。
   // 必須排在「不出勤」判斷之前。
   if (/^L(\+|＋)查$/.test(s)) return { type:"normal", label:s, time:"08:00–17:30" };
-  // 不出勤：休/國/V/例/病/公/補休/複檢/延病/補/V補
-  if (/^(休|國|V|例|病|公|補|複檢|延病)$/.test(s)
+  // 不出勤：休/國/V/例/病/公/補休/複檢/延病/補/V補/事假/喪假
+  if (/^(休|國|V|例|病|公|補|複檢|延病|事|喪)$/.test(s)
       || /^休\d*$/.test(s) || /^例\d*$/.test(s) || /^病\d*$/.test(s)
       || /^V[／/]補$/.test(s)
       || /補休/.test(s) || /延病/.test(s))
@@ -983,7 +985,7 @@ function classifyRaw(raw) {
   if (/(品營日|機器日|儀器日|資訊日|兒醫日|教學日|ACLS)/.test(s))
     return { type:"normal", label:s, time:"08:00–17:30" };
   // 8-4 班
-  if (/8\s*[-－]\s*4/.test(s)) return { type:"eight", label:s, time:"07:45–16:15" };
+  if (EIGHT_GROUP.test(s) || /8\s*[-－]\s*4/.test(s)) return { type:"eight", label:s, time:"07:45–16:15" };
   // 有 * → 早班
   if (s.includes("*")) return { type:"early", label:s, time:"07:45–16:15" };
   if (/小/.test(s)) return { type:"small", label:s, time:"15:30–24:00" };
@@ -1143,7 +1145,7 @@ function resolveInfo(raw, isWeekend){
              duty:["紀錄區域："+v.rec, "cover："+v.cover, v.clean], noon:"",
              note:"大夜班在呼吸器條件 FiO₂ ≧ 50% 或 PEEP ≧ 10 cmH₂O 時需紀錄 1 次。" };
   }
-  if (m = s.match(/^([ABCD])\s*8\s*[-－]\s*4$/)) {
+  if (m = s.match(EIGHT_GROUP)) {
     const g=m[1], v=HOLIDAY_DAY[g];
     return { cat:"day", group:g, label:s, area:v.area, phone:PHONE[g], time:"07:45–16:15", badge:"eight",
              duty:["負責區域："+v.area, v.clean], noon:"",
@@ -1298,7 +1300,7 @@ function isHolidayMode(y,mo,d){
   if(dow===0||dow===6) return true;
   const g=new Set();
   monthOrder(`${y}-${mo}`).forEach(name=>{
-    const m=/^([ABCD])\s*8\s*[-－]\s*4$/.exec(String(getShift(name,y,mo,d)||"").trim());
+    const m=EIGHT_GROUP.exec(String(getShift(name,y,mo,d)||"").trim());
     if(m) g.add(m[1]);
   });
   return g.size>=2;
