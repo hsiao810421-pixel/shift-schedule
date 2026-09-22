@@ -9,7 +9,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23058482'/%3E%3Ctext x='16' y='22' font-size='17' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='bold'%3E班%3C/text%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' fill='none' stroke='%23058482' stroke-width='2.2' stroke-linecap='round'%3E%3Crect x='4.6' y='7.8' width='22.8' height='19.4' rx='2.8'/%3E%3Cpath d='M4.6 12.8h22.8M11.2 4.4v3.8M20.8 4.4v3.8'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-title" content="班表">
 <title>呼吸治療科 · 班表系統</title>
 <style>
   /* ════════════════════════════════════════════════════════════
@@ -231,6 +234,13 @@
     font-family: inherit; font-size: 12.5px; padding: 6px 10px; border-radius: 7px; cursor: pointer;
   }
   .quick button:hover { border-color: var(--teal); color: var(--teal-deep); }
+  .ics-check { display: flex; align-items: center; gap: 8px; margin: 14px 0 12px;
+    font-size: 13.5px; color: var(--ink-2); cursor: pointer; }
+  .ics-check input { width: 16px; height: 16px; accent-color: var(--teal); }
+  .ics-how { font-size: 12.5px; line-height: 1.75; color: var(--ink-3);
+    background: var(--paper); border: 1px solid var(--line); border-radius: 10px;
+    padding: 11px 13px; margin-bottom: 16px; }
+  .ics-how b { color: var(--ink-2); font-weight: 600; }
   .btns { display: flex; gap: 8px; justify-content: flex-end; align-items: center; }
   .btn {
     padding: 11px 20px; border-radius: 9px; font-family: inherit; font-size: 14px;
@@ -261,6 +271,7 @@
     transition: border-color .16s var(--ease), color .16s var(--ease);
   }
   .tb-btn:hover { border-color: var(--teal); color: var(--teal-deep); }
+  .tb-btn.tb-cal { background: var(--teal-wash); border-color: var(--teal-line); color: var(--teal-deep); }
   .tb-danger { color: var(--sun); border-color: rgba(180,72,91,.3); }
   .tb-danger:hover { border-color: var(--sun); color: var(--sun); }
 
@@ -635,6 +646,7 @@
     <span class="save-note" id="saveNote">✓ 修改會自動儲存於此瀏覽器</span>
     <span class="data-note" id="dataNote">官方班表資料：2026年6月</span>
     <span class="tb-actions">
+      <button class="tb-btn tb-cal" id="btnIcs">加入行事曆</button>
       <button class="tb-btn" id="btnExport">匯出備份</button>
       <button class="tb-btn" id="btnImport">匯入備份</button>
       <button class="tb-btn tb-danger" id="btnClearAll">清除所有修改</button>
@@ -660,6 +672,22 @@
    <div class="master-wrap"><table class="master" id="masterTable"></table></div>
  </div>
 </main>
+<div class="overlay" id="icsOverlay">
+  <div class="modal">
+    <h3>加入行事曆</h3>
+    <div class="sub" id="icsSub"></div>
+    <label class="ics-check"><input type="checkbox" id="icsRest"> 同時加入休假日（整天事件）</label>
+    <div class="ics-how">
+      <b>iPhone／iPad</b>：下載後點開檔案，選要加入的日曆。<br>
+      <b>電腦／Android</b>：Google 日曆 → 設定 → 匯入及匯出 → 匯入，選這個檔案。<br>
+      同一個月重複匯入不會變成兩筆，會更新原本的事件；但若某天從上班改成休假，原本那筆要自己刪掉。
+    </div>
+    <div class="btns">
+      <button class="btn btn-ghost" id="icsCancel">關閉</button>
+      <button class="btn btn-primary" id="icsGo">下載 .ics 檔</button>
+    </div>
+  </div>
+</div>
 <div class="overlay" id="overlay">
   <div class="modal">
     <h3 id="mTitle">班別資訊</h3>
@@ -1339,6 +1367,112 @@ document.getElementById("nextBtn").onclick=()=>{if(++curMonth>11){curMonth=0;cur
 function flashSaved(){ const n=document.getElementById("saveNote"); n.textContent="✓ 已儲存"; n.classList.remove("flash"); void n.offsetWidth; n.classList.add("flash"); setTimeout(()=>{n.textContent="✓ 修改會自動儲存於此瀏覽器";},1400); }
 
 // 匯出備份
+// ─────────────────────────────────────────────
+//  匯出行事曆（.ics）
+//  產生標準 iCalendar 檔，任何日曆 App（Google／Apple／Outlook）都能匯入。
+//  同一人同一天固定用同一組 UID，所以重複匯入是「更新」而不是長出第二筆。
+// ─────────────────────────────────────────────
+const icsEncoder = new TextEncoder();
+const ICS_BS = String.fromCharCode(92);   // 反斜線本身；ics 規格規定要跳脫
+const icsEsc = s => String(s==null?"":s)
+  .split(ICS_BS).join(ICS_BS+ICS_BS)
+  .split(";").join(ICS_BS+";")
+  .split(",").join(ICS_BS+",")
+  .replace(/\r?\n/g, ICS_BS+"n");
+// RFC 5545：每行最多 75 bytes，超過要折行，續行開頭補一個空白
+function icsFold(line){
+  const out=[]; let cur="", n=0;
+  for(const ch of line){
+    const b=icsEncoder.encode(ch).length;
+    if(n+b>73){ out.push(cur); cur=" "+ch; n=1+b; }
+    else { cur+=ch; n+=b; }
+  }
+  out.push(cur); return out;
+}
+const p2 = n => String(n).padStart(2,"0");
+// 台灣固定 UTC+8、無日光節約，直接換算成 UTC 寫入，不受使用者裝置時區影響
+function icsUTC(y,mo,d,hh,mm){
+  const t=new Date(Date.UTC(y,mo,d,hh-8,mm));
+  return `${t.getUTCFullYear()}${p2(t.getUTCMonth()+1)}${p2(t.getUTCDate())}T${p2(t.getUTCHours())}${p2(t.getUTCMinutes())}00Z`;
+}
+function icsDate(y,mo,d){
+  const t=new Date(Date.UTC(y,mo,d));
+  return `${t.getUTCFullYear()}${p2(t.getUTCMonth()+1)}${p2(t.getUTCDate())}`;
+}
+// "07:45–16:15" → 起訖時分；認不得就回 null（該日跳過）
+const icsSpan = t => {
+  const m=/^(\d{1,2}):(\d{2})\s*[–—-]\s*(\d{1,2}):(\d{2})$/.exec(String(t==null?"":t).trim());
+  return m ? {sh:+m[1],sm:+m[2],eh:+m[3],em:+m[4]} : null;
+};
+function buildICS(staff,y,mo,withRest){
+  const days=new Date(y,mo+1,0).getDate();
+  // UID 必須是 ASCII：優先用卡號，沒有就把姓名轉成十六進位
+  const tag=(CARDS[staff]||"").replace(/[^A-Za-z0-9]/g,"")
+    || [...staff].map(c=>c.charCodeAt(0).toString(16)).join("");
+  const now=new Date();
+  const stamp=`${now.getUTCFullYear()}${p2(now.getUTCMonth()+1)}${p2(now.getUTCDate())}T`
+    +`${p2(now.getUTCHours())}${p2(now.getUTCMinutes())}${p2(now.getUTCSeconds())}Z`;
+  const L=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//VGHTC RT//shift-schedule//ZH-TW",
+           "CALSCALE:GREGORIAN","METHOD:PUBLISH"];
+  L.push(...icsFold("X-WR-CALNAME:"+icsEsc(`${staff} ${y}/${mo+1} 班表`)));
+  let n=0;
+  for(let d=1;d<=days;d++){
+    const code=getShift(staff,y,mo,d); if(!code) continue;
+    const info=resolveInfo(code,isHolidayMode(y,mo,d));
+    const ev=["BEGIN:VEVENT",
+              `UID:rt-${tag}-${y}${p2(mo+1)}${p2(d)}@shift-schedule`,
+              "DTSTAMP:"+stamp];
+    if(info.cat==="rest"){
+      if(!withRest) continue;
+      ev.push(`DTSTART;VALUE=DATE:${icsDate(y,mo,d)}`,
+              `DTEND;VALUE=DATE:${icsDate(y,mo,d+1)}`,
+              "TRANSP:TRANSPARENT");
+    }else{
+      const sp=icsSpan(info.time); if(!sp) continue;
+      // 收班時間小於等於上班時間＝大夜跨日，結束日要 +1
+      const overnight=(sp.eh*60+sp.em)<=(sp.sh*60+sp.sm);
+      ev.push("DTSTART:"+icsUTC(y,mo,d,sp.sh,sp.sm),
+              "DTEND:"+icsUTC(y,mo,d+(overnight?1:0),sp.eh,sp.em));
+      const desc=[info.area&&`區域：${info.area}`,
+                  info.phone&&`公務機分機：${info.phone}`,
+                  info.time&&`時間：${info.time}`]
+        .concat(info.duty||[]).concat(info.note?[info.note]:[]).filter(Boolean).join("\n");
+      if(desc) ev.push(...icsFold("DESCRIPTION:"+icsEsc(desc)));
+      if(info.area) ev.push(...icsFold("LOCATION:"+icsEsc(info.area)));
+    }
+    ev.push(...icsFold("SUMMARY:"+icsEsc(code)),"END:VEVENT");
+    L.push(...ev); n++;
+  }
+  L.push("END:VCALENDAR");
+  return {text:L.join("\r\n")+"\r\n", count:n};
+}
+// 對話框
+function icsCount(staff,y,mo,withRest){ return buildICS(staff,y,mo,withRest).count; }
+function openIcs(){
+  const withRest=document.getElementById("icsRest").checked;
+  document.getElementById("icsSub").textContent =
+    `${curStaff}　${curYear} 年 ${curMonth+1} 月　·　${icsCount(curStaff,curYear,curMonth,withRest)} 筆`;
+  document.getElementById("icsOverlay").classList.add("open");
+}
+document.getElementById("btnIcs").onclick=openIcs;
+document.getElementById("icsRest").onchange=openIcs;
+document.getElementById("icsCancel").onclick=()=>document.getElementById("icsOverlay").classList.remove("open");
+document.getElementById("icsOverlay").onclick=e=>{
+  if(e.target.id==="icsOverlay") document.getElementById("icsOverlay").classList.remove("open");
+};
+document.getElementById("icsGo").onclick=()=>{
+  const withRest=document.getElementById("icsRest").checked;
+  const {text,count}=buildICS(curStaff,curYear,curMonth,withRest);
+  if(!count){ alert("這個月份沒有可以匯出的班表資料。"); return; }
+  const blob=new Blob([text],{type:"text/calendar;charset=utf-8"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url; a.download=`班表_${curStaff}_${curYear}-${p2(curMonth+1)}.ics`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1500);
+  document.getElementById("icsOverlay").classList.remove("open");
+};
+
 document.getElementById("btnExport").onclick=()=>{
   const blob=new Blob([JSON.stringify(overrides,null,2)],{type:"application/json"});
   const a=document.createElement("a");
