@@ -317,10 +317,12 @@
 
   /* ── 個人日詳情 ─────────────────────────────── */
   .info { background: var(--paper); border-radius: var(--r-cell); padding: 15px 16px; margin-bottom: 18px; }
-  .info-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  .info-badge { font-size: 13.5px; font-weight: 600; padding: 4px 11px; border-radius: 7px; }
-  .info-area { font-size: 14px; font-weight: 600; flex: 1; min-width: 0; }
-  .info-phone { margin-left: auto; font-size: 13px; }
+  .info-top { display: flex; align-items: center; gap: 10px; row-gap: 9px; flex-wrap: wrap; }
+  .info-badge { order: 1; font-size: 13.5px; font-weight: 600; padding: 4px 11px; border-radius: 7px; }
+  .info-phone { order: 2; margin-left: auto; font-size: 13px; }
+  /* 區域名稱獨佔整列：夾在班別與分機中間只剩百來 px，長區域會被擠成逐字折行 */
+  .info-area { order: 3; flex: 0 0 100%; font-size: 15px; font-weight: 600;
+    line-height: 1.45; color: var(--teal-ink); }
   .info-row { font-size: 12.5px; color: var(--ink-2); margin-top: 9px; }
   .info-row b { color: var(--ink); font-weight: 600; margin-right: 5px; }
   .duty-list { margin: 10px 0 0; padding-left: 18px; font-size: 12.5px; color: var(--ink-2); line-height: 1.65; }
@@ -469,6 +471,14 @@
   /* ════════════ 手機版（≤640px）════════════════ */
   @media (max-width: 640px) {
     :root { --gutter: 14px; --tap: 40px; }
+
+    /* 日詳情彈窗：窄畫面時區域名稱會被班別與分機夾到只剩幾十 px，逐字折行。
+       改成上排班別＋分機、下排區域獨佔整列。 */
+    .info { padding: 13px 14px; }
+    .info-badge { font-size: 14px; }
+    .info-row { font-size: 13px; margin-top: 8px; }
+    .duty-list { font-size: 13px; padding-left: 16px; line-height: 1.6; }
+    .info-note { font-size: 12px; }
 
     header {
       padding: calc(8px + env(safe-area-inset-top)) calc(var(--gutter) + env(safe-area-inset-right)) 0 calc(var(--gutter) + env(safe-area-inset-left));
