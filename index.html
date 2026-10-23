@@ -130,6 +130,15 @@
   .nav-btn:hover { border-color: var(--teal); color: var(--teal); }
   .nav-btn:active { transform: scale(.95); }
   .month-label { font-size: 15px; font-weight: 600; min-width: 104px; text-align: center; color: var(--ink); }
+  /* 本日出勤的日期標籤＝可點的日期選擇器：把原生 date input 透明疊在標籤上，
+     點哪裡都會開啟系統選擇器，不必依賴 showPicker() */
+  .day-pick { position: relative; display: inline-flex; align-items: center;
+    border: 1px solid var(--line-2); border-radius: 8px; background: var(--card);
+    padding: 5px 8px; cursor: pointer; }
+  .day-pick input[type="date"] { position: absolute; inset: 0; width: 100%; height: 100%;
+    opacity: 0; border: 0; padding: 0; margin: 0; cursor: pointer;
+    font-family: inherit; -webkit-appearance: none; appearance: none; }
+  .day-pick .month-label { min-width: 88px; }
 
   /* 鎖定人員：鎖上後選單停用，重新開啟直接顯示此人 */
   .lock-btn {
@@ -371,6 +380,9 @@
   }
   /* 觸控裝置點擊後 :hover 會殘留，導致部分卡片一直有底色、部分沒有 —— 只在真有游標時套用 */
   @media (hover: hover) {
+    .day-pick:hover { border-color: var(--teal); }
+    .st-row:hover { border-color: var(--teal); }
+    .seg-btn:hover { color: var(--teal-deep); }
     .guide-toggle:hover { border-color: var(--teal); }
     .g-head:hover { background: var(--teal-wash); }
   }
@@ -407,6 +419,42 @@
     text-decoration: none; white-space: nowrap;
   }
   .sheet-link:hover { border-color: var(--teal); background: var(--teal-wash); }
+  /* ── 區域統計 ───────────────────────────────── */
+  .stats-bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+  .stats-range { font-size: 12.5px; color: var(--ink-3); }
+  .stats-range b { color: var(--ink-2); font-weight: 600; }
+  .stats-opts { margin-left: auto; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .seg { display: inline-flex; border: 1px solid var(--line-2); border-radius: 8px; overflow: hidden; }
+  .seg-btn { background: var(--card); border: 0; font-family: inherit; font-size: 12.5px;
+    padding: 7px 14px; cursor: pointer; color: var(--ink-2); }
+  .seg-btn + .seg-btn { border-left: 1px solid var(--line-2); }
+  .seg-btn.active { background: var(--teal-wash); color: var(--teal-deep); font-weight: 600; }
+  .st-check { display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--ink-2); cursor: pointer; }
+  .st-check input { width: 15px; height: 15px; accent-color: var(--teal); }
+  .st-group { font-size: 12px; color: var(--ink-3); font-weight: 600; letter-spacing: .04em;
+    margin: 18px 0 9px; }
+  .st-group:first-child { margin-top: 0; }
+  .st-row {
+    display: flex; align-items: center; gap: 11px; width: 100%; text-align: left;
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--r-cell);
+    padding: 11px 13px; margin-bottom: 7px; cursor: pointer; font-family: inherit;
+    box-shadow: var(--sh-card); transition: border-color .16s var(--ease);
+  }
+  .st-code { font-size: 12.5px; font-weight: 600; padding: 3px 9px; border-radius: 6px; flex: none; }
+  .st-area { font-size: 12.5px; color: var(--ink-2); min-width: 0; flex: 1;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .st-n { font-size: 15px; font-weight: 700; color: var(--ink); flex: none; }
+  .st-n small { font-size: 11px; font-weight: 500; color: var(--ink-3); margin-left: 2px; }
+  .st-last { font-size: 11.5px; color: var(--ink-3); flex: none; min-width: 112px; text-align: right; }
+  .st-last em { font-style: normal; color: var(--sun); font-weight: 600; }
+  .st-dates { font-size: 11.5px; color: var(--ink-2); line-height: 1.9; background: var(--paper);
+    border: 1px solid var(--line); border-radius: var(--r-cell); padding: 10px 13px; margin: -3px 0 9px; }
+  .st-dates span { display: inline-block; margin-right: 10px; }
+  .st-empty { font-size: 13px; color: var(--ink-3); padding: 14px 2px; }
+  table.master td.st-zero { color: var(--line-2); }
+  table.master td.st-num { cursor: default; }
+  table.master td.st-num:hover { outline: none; }
+
   .master-wrap {
     overflow: auto; border: 1px solid var(--line); border-radius: var(--r-cell);
     max-height: 78vh; background: var(--card); -webkit-overflow-scrolling: touch;
@@ -471,6 +519,14 @@
   /* ════════════ 手機版（≤640px）════════════════ */
   @media (max-width: 640px) {
     :root { --gutter: 14px; --tap: 40px; }
+
+    /* 區域統計：選項獨佔一列；「上次…」換到第二行，把寬度讓給區域名稱 */
+    .stats-bar { gap: 10px; }
+    .stats-opts { margin-left: 0; width: 100%; justify-content: space-between; }
+    .st-row { flex-wrap: wrap; row-gap: 5px; padding: 10px 12px; }
+    .st-area { flex: 1 1 auto; font-size: 12.5px; }
+    .st-last { flex: 0 0 100%; min-width: 0; text-align: right; font-size: 11px; }
+    .st-group { margin: 16px 0 8px; }
 
     /* 日詳情彈窗：窄畫面時區域名稱會被班別與分機夾到只剩幾十 px，逐字折行。
        改成上排班別＋分機、下排區域獨佔整列。 */
@@ -618,6 +674,7 @@
     <button class="tab active" id="tabPerson">個人班表</button>
     <button class="tab" id="tabMaster">總表</button>
     <button class="tab" id="tabDay">本日出勤</button>
+    <button class="tab" id="tabStats">區域統計</button>
   </div>
   <div class="header-controls" id="personControls">
     <button class="nav-btn" id="prevBtn" aria-label="上個月">‹</button>
@@ -628,7 +685,10 @@
   </div>
   <div class="header-controls" id="dayControls" hidden>
     <button class="nav-btn" id="dPrev" aria-label="前一天">‹</button>
-    <span class="month-label" id="dayLabel"></span>
+    <span class="day-pick" id="dayPick">
+      <span class="month-label" id="dayLabel"></span>
+      <input type="date" id="dayPicker" aria-label="選擇日期">
+    </span>
     <button class="nav-btn" id="dNext" aria-label="後一天">›</button>
     <button class="tb-btn" id="dToday">今天</button>
   </div>
@@ -676,6 +736,22 @@
  <div id="dayView" hidden>
    <div class="day-banner" id="dayBanner"></div>
    <div id="daySections"></div>
+ </div>
+ <div id="statsView" hidden>
+   <div class="stats-bar">
+     <div class="stats-range" id="statsRange"></div>
+     <div class="stats-opts">
+       <span class="seg">
+         <button class="seg-btn active" id="stTabMine">個人</button>
+         <button class="seg-btn" id="stTabAll">全科總表</button>
+       </span>
+       <label class="st-check"><input type="checkbox" id="stFuture"> 含未來已排的班</label>
+     </div>
+   </div>
+   <div id="statsMine"></div>
+   <div id="statsAll" hidden>
+     <div class="master-wrap"><table class="master" id="statsTable"></table></div>
+   </div>
  </div>
  <div id="masterView" hidden>
    <div class="master-hint" id="masterHint"></div>
@@ -936,14 +1012,32 @@ function locateTable(rows){
   }
   return people.length ? {hr,dayCols,people} : null;
 }
+// gviz 在「分頁不存在」時不會報錯，而是回傳試算表第一個分頁的內容。
+// 所以解析成功還不夠，必須確認抓到的真的是這個月：
+//   有星期列（日期表頭列的下一列）→ 比對 1 號星期與該月天數；
+//   沒有星期列（舊排版，第一列就是姓名/卡號/日期）→ 只信內建資料已涵蓋的月份。
+function sheetIsMonth(rows, t, y, mo){
+  const wk = rows[t.hr+1] || [];
+  const idx = "日一二三四五六".indexOf(cellText(wk[t.dayCols[0][0]]));
+  if(idx >= 0){
+    const lastDay = t.dayCols[t.dayCols.length-1][1];
+    return idx === new Date(y,mo,1).getDay() && lastDay === new Date(y,mo+1,0).getDate();
+  }
+  return !!BASE[`${y}-${mo}`];
+}
 async function fetchRemoteMonth(y,mo){
   const mk=`${y}-${mo}`, tab=monthTabName(y,mo);
   const url=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&headers=0&sheet=${encodeURIComponent(tab)}`;
   try{
     const res=await fetch(url,{cache:"no-store"});
     const txt=await res.text();
-    const t=locateTable(parseCSV(txt));
+    const rows=parseCSV(txt);
+    const t=locateTable(rows);
     if(!t){ remoteState[mk]="empty"; return false; }
+    if(!sheetIsMonth(rows,t,y,mo)){      // 抓到的是別的分頁（多半是該月分頁還沒建立）
+      console.warn("雲端班表：找不到分頁，已略過：",tab);
+      remoteState[mk]="empty"; return false;
+    }
     const order=[], data={};
     t.people.forEach(({name,card,row})=>{
       order.push(name);
@@ -982,15 +1076,28 @@ const isRedMark=(name,y,mo,d)=>{ const s=REDMARK[`${y}-${mo}`]; return !!(s && s
 // 是否標為「已修改」：本機修改（若啟用）或試算表紅字
 const isMarked=(name,y,mo,d)=> isEdited(name,y,mo,d) || isRedMark(name,y,mo,d);
 
+// 同一個月可能同時被多個檢視要求（例如個人班表先發起、本日出勤後到），
+// 所以等待重繪的 callback 要排成佇列；只記第一個的話，後到的檢視永遠不會更新。
+const remoteWaiters={}, redWaiters={};
+const queueWaiter=(map,mk,cb)=>{ if(cb) (map[mk]=map[mk]||[]).push(cb); };
+const flushWaiters=(map,mk)=>{ const ws=map[mk]||[]; map[mk]=[]; ws.forEach(f=>{ try{ f(); }catch(e){} }); };
 function ensureRemote(y,mo,cb){
   const mk=`${y}-${mo}`;
-  if(SHEET_ENABLED && !remoteState[mk]){          // 每月每次工作階段只嘗試一次
-    remoteState[mk]="loading";
-    fetchRemoteMonth(y,mo).then(ok=>{ if(ok && cb) cb(); });
+  if(SHEET_ENABLED){
+    if(!remoteState[mk]){                          // 每月每次工作階段只抓一次
+      remoteState[mk]="loading"; queueWaiter(remoteWaiters,mk,cb);
+      fetchRemoteMonth(y,mo).then(ok=>{ if(ok) flushWaiters(remoteWaiters,mk); else remoteWaiters[mk]=[]; });
+    }else if(remoteState[mk]==="loading"){
+      queueWaiter(remoteWaiters,mk,cb);            // 正在抓：排隊等同一份結果
+    }
   }
-  if(REDMARK_URL && !redState[mk]){
-    redState[mk]="loading";
-    fetchRedMarks(y,mo).then(()=>{ redState[mk]="done"; if(cb) cb(); });
+  if(REDMARK_URL){
+    if(!redState[mk]){
+      redState[mk]="loading"; queueWaiter(redWaiters,mk,cb);
+      fetchRedMarks(y,mo).then(()=>{ redState[mk]="done"; flushWaiters(redWaiters,mk); });
+    }else if(redState[mk]==="loading"){
+      queueWaiter(redWaiters,mk,cb);
+    }
   }
 }
 const monthOrder = (mk) => REMOTE[mk] ? REMOTE[mk].order
@@ -1527,6 +1634,8 @@ function renderDayView(){
   const isWe=isHolidayMode(y,mo,d);
   const mk=`${y}-${mo}`;
   document.getElementById("dayLabel").textContent=`${mo+1}/${d}`;
+  const dp=document.getElementById("dayPicker");
+  if(dp) dp.value=`${y}-${String(mo+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
   const hasData=monthHasData(mk);
 
   // 蒐集當日出勤
@@ -1635,26 +1744,168 @@ function renderMaster(){
 
 // ── 分頁切換 ──
 let view="person";
+// ─────────────────────────────────────────────
+//  區域統計
+//  起算點＝2026 年 10 月；跨年後每年 1 月自動歸零。
+//  欄位與數法比照科內「工作區域統計表」：值＝該班別代碼出現的天數。
+// ─────────────────────────────────────────────
+const STATS_EPOCH_Y = 2026, STATS_EPOCH_MO = 9;      // 2026 年 10 月（mo 為 0-indexed）
+const AREA_CODES = ["I*","I2*","CV1*","CVCU*","NS*","I2NS*","F","W下*","CPT","清*",
+                    "RI*","RI2*","PI*","NI","RC2","RCC","L+查"];
+const AREA_ALIAS = { "L+查":"小組長日" };
+let stView = "mine";
+
+function statsRange(){
+  const t = new Date(); t.setHours(0,0,0,0);
+  const cross = t.getFullYear() > STATS_EPOCH_Y;       // 跨年＝從當年 1 月重新算
+  const sy = cross ? t.getFullYear() : STATS_EPOCH_Y;
+  const smo = cross ? 0 : STATS_EPOCH_MO;
+  // 多看兩個月，讓「含未來已排的班」不必重新抓資料
+  const endKey = t.getFullYear()*12 + t.getMonth() + 2;
+  const months = []; let y = sy, mo = smo;
+  while(y*12 + mo <= endKey){ months.push([y,mo]); if(++mo > 11){ mo = 0; y++; } }
+  return { sy, smo, months, today:t };
+}
+const statsPending = () => statsRange().months.filter(([y,mo]) => {
+  const st = remoteState[`${y}-${mo}`];
+  return !st || st === "loading";
+});
+const dayGap = (a,b) => Math.round((b-a)/86400000);
+const fmtMD  = dt => `${dt.getMonth()+1}/${dt.getDate()}`;
+
+function computeStats(withFuture){
+  const { months, today } = statsRange();
+  const per = {}, seen = new Set(), who = new Set();
+  months.forEach(([y,mo]) => {
+    const mk = `${y}-${mo}`, dn = new Date(y,mo+1,0).getDate();
+    monthOrder(mk).forEach(name => {
+      who.add(name);
+      for(let d=1; d<=dn; d++){
+        const dt = new Date(y,mo,d);
+        if(!withFuture && dt > today) continue;
+        const code = String(getShift(name,y,mo,d)||"").trim();
+        if(!code) continue;
+        if(resolveInfo(code, isHolidayMode(y,mo,d)).cat === "rest") continue;   // 休假不計
+        const p = per[name] || (per[name] = {});
+        const e = p[code] || (p[code] = { n:0, dates:[] });
+        e.n++; e.dates.push(dt); seen.add(code);
+      }
+    });
+  });
+  return { per, seen, who, today };
+}
+
+function stRow(code, e, today){
+  const info = resolveInfo(code, false);
+  const last = e.dates[e.dates.length-1];
+  const gap  = dayGap(last, today);
+  const gapTxt = gap === 0 ? "就是今天" : gap < 0 ? `還有 ${-gap} 天` : `${gap} 天前`;
+  const area = AREA_ALIAS[code] || info.area || "";
+  return `<button class="st-row"><span class="st-code t-${colorType(code, classify(code).type)}">${code}</span>`
+    + `<span class="st-area">${area}</span>`
+    + `<span class="st-n">${e.n}<small>天</small></span>`
+    + `<span class="st-last">上次 ${fmtMD(last)}　<em>${gapTxt}</em></span></button>`
+    + `<div class="st-dates" hidden>${e.dates.map(d=>`<span>${fmtMD(d)}</span>`).join("")}</div>`;
+}
+
+function renderStatsMine(st){
+  const me = st.per[curStaff] || {};
+  const area  = AREA_CODES.filter(c => me[c]);
+  const other = Object.keys(me).filter(c => !AREA_CODES.includes(c))
+                      .sort((a,b) => me[b].n - me[a].n || a.localeCompare(b));
+  if(!area.length && !other.length)
+    return `<div class="st-empty">${curStaff} 在這段期間沒有出勤紀錄。</div>`;
+  let h = "";
+  if(area.length)  h += `<div class="st-group">工作區域</div>` + area.map(c => stRow(c, me[c], st.today)).join("");
+  if(other.length) h += `<div class="st-group">夜班 / 假日班 / 其他</div>` + other.map(c => stRow(c, me[c], st.today)).join("");
+  return h;
+}
+
+function renderStatsAll(st){
+  const names = monthOrder(`${curYear}-${curMonth}`).filter(n => st.who.has(n));
+  st.who.forEach(n => { if(!names.includes(n)) names.push(n); });
+  const head = `<thead><tr><th class="mcol-name">姓名</th>`
+    + AREA_CODES.map(c => `<th>${c}${AREA_ALIAS[c]?`<small>${AREA_ALIAS[c]}</small>`:""}</th>`).join("")
+    + `<th>合計</th></tr></thead>`;
+  const body = names.map(n => {
+    const me = st.per[n] || {};
+    let sum = 0;
+    const tds = AREA_CODES.map(c => {
+      const v = me[c] ? me[c].n : 0; sum += v;
+      return `<td class="st-num${v?"":" st-zero"}">${v}</td>`;
+    }).join("");
+    return `<tr><td class="mcol-name">${n}</td>${tds}<td class="st-num"><b>${sum}</b></td></tr>`;
+  }).join("");
+  document.getElementById("statsTable").innerHTML = head + `<tbody>${body}</tbody>`;
+}
+
+function renderStats(){
+  const rangeEl = document.getElementById("statsRange");
+  const { sy, smo, today } = statsRange();
+  const txt = `統計區間 <b>${sy}/${smo+1}/1 – ${today.getFullYear()}/${today.getMonth()+1}/${today.getDate()}</b>`;
+  const pend = statsPending();
+  if(pend.length){                                   // 先把需要的月份補齊，載完自己再畫一次
+    pend.forEach(([y,mo]) => ensureRemote(y,mo,() => { if(view==="stats") renderStats(); }));
+    rangeEl.innerHTML = txt + "　·　資料載入中…";
+    return;
+  }
+  const withFuture = document.getElementById("stFuture").checked;
+  const st = computeStats(withFuture);
+  rangeEl.innerHTML = txt + (withFuture ? "　·　<b>已含未來排定的班</b>" : "　·　只算到今天");
+  document.getElementById("statsMine").hidden = stView !== "mine";
+  document.getElementById("statsAll").hidden  = stView !== "all";
+  if(stView === "mine") document.getElementById("statsMine").innerHTML = renderStatsMine(st);
+  else renderStatsAll(st);
+}
+
+function setStView(v){
+  stView = v;
+  document.getElementById("stTabMine").classList.toggle("active", v==="mine");
+  document.getElementById("stTabAll").classList.toggle("active", v==="all");
+  renderStats();
+}
+document.getElementById("stTabMine").onclick = () => setStView("mine");
+document.getElementById("stTabAll").onclick  = () => setStView("all");
+document.getElementById("stFuture").onchange = renderStats;
+// 點某一列展開／收合該區域的所有日期
+document.getElementById("statsMine").addEventListener("click", e => {
+  const row = e.target.closest(".st-row"); if(!row) return;
+  const box = row.nextElementSibling;
+  if(box && box.classList.contains("st-dates")) box.hidden = !box.hidden;
+});
+
 function setView(v){
   view=v;
   document.getElementById("tabPerson").classList.toggle("active",v==="person");
   document.getElementById("tabMaster").classList.toggle("active",v==="master");
   document.getElementById("tabDay").classList.toggle("active",v==="day");
+  document.getElementById("tabStats").classList.toggle("active",v==="stats");
   document.getElementById("personView").hidden=v!=="person";
   document.getElementById("masterView").hidden=v!=="master";
   document.getElementById("dayView").hidden=v!=="day";
+  document.getElementById("statsView").hidden=v!=="stats";
   // 控制列：月份導覽於「個人／總表」共用；同事下拉僅個人頁
   document.getElementById("personControls").hidden=(v==="day");
-  document.getElementById("staffSelect").style.display=(v==="person")?"":"none";
+  document.getElementById("staffSelect").style.display=(v==="person"||v==="stats")?"":"none";
+  ["prevBtn","monthLabel","nextBtn"].forEach(id=>{
+    document.getElementById(id).style.display=(v==="stats")?"none":"";
+  });
   document.getElementById("dayControls").hidden=(v!=="day");
   renderActive();
 }
 document.getElementById("tabPerson").onclick=()=>setView("person");
 document.getElementById("tabMaster").onclick=()=>setView("master");
 document.getElementById("tabDay").onclick=()=>setView("day");
+document.getElementById("tabStats").onclick=()=>setView("stats");
 document.getElementById("dPrev").onclick=()=>{dayDate.setDate(dayDate.getDate()-1);renderDayView();};
 document.getElementById("dNext").onclick=()=>{dayDate.setDate(dayDate.getDate()+1);renderDayView();};
 document.getElementById("dToday").onclick=()=>{dayDate=new Date();dayDate.setHours(0,0,0,0);renderDayView();};
+document.getElementById("dayPicker").onchange=e=>{
+  const v=e.target.value; if(!v) return;
+  const [yy,mm,dd]=v.split("-").map(Number);
+  dayDate=new Date(yy,mm-1,dd); dayDate.setHours(0,0,0,0);
+  renderDayView();
+};
 
 // 唯讀模式：隱藏工具列的備份/清除與自動儲存提示
 if(!EDIT_ENABLED){
@@ -1666,6 +1917,7 @@ function renderActive(){
   renderPerson(); // 同步月份標籤與個人卡片
   if(view==="master") renderMaster();
   else if(view==="day") renderDayView();
+  else if(view==="stats") renderStats();
   else renderCalendar();
 }
 // ─────────────────────────────────────────────
