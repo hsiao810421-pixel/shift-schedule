@@ -546,8 +546,10 @@
     .tabs { align-self: auto; }
     .tab { font-size: 13.5px; padding: 0 11px; }
     .header-controls { width: 100%; margin-left: 0; gap: 7px; padding-bottom: 9px; justify-content: space-between; }
-    .month-label { font-size: clamp(13px, 3.9vw, 15px); min-width: 0; flex: 1; white-space: nowrap; }
-    #staffSelect { min-width: 0; flex: 1.25; font-size: 14px; padding: 0 30px 0 12px; }
+    /* 月份要完整顯示（不可壓縮），剩下的寬度給姓名下拉去吸收；
+       反過來設會讓「2026 年 11月」被下一個按鈕蓋住 */
+    .month-label { font-size: clamp(13px, 3.9vw, 15px); flex: 0 0 auto; white-space: nowrap; }
+    #staffSelect { min-width: 0; flex: 1; font-size: 14px; padding: 0 30px 0 12px; }
     #dToday { height: var(--tap); padding: 0 14px; }
 
     main { padding: 16px var(--gutter) calc(40px + env(safe-area-inset-bottom)); }
