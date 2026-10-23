@@ -998,11 +998,15 @@ const monthOrder = (mk) => REMOTE[mk] ? REMOTE[mk].order
 const monthHasData = (mk) => !!REMOTE[mk] || !!BASE[mk];
 
 // 依試算表，這兩個班別的時段不同於其 classify 類型的預設值
-const CODE_TIME = { "肺*":"08:00–17:00", "ACLS":"08:00–16:00", "HP":"08:00–16:00" };
+// 科內有時會在代碼尾端加 *（如 ACLS*）。查表時原值找不到，就去掉尾端 * 再查一次；
+// 本身就帶 * 的代碼（肺*、清*）會在第一次就命中，不受影響。
+const codeLookup = (map, raw) => { const s = String(raw==null?"":raw).trim();
+  return (s in map) ? map[s] : map[s.replace(/\*$/,"")]; };
+const CODE_TIME = { "肺*":"08:00–17:00", "ACLS*":"08:00–16:00", "ACLS":"08:00–16:00", "HP":"08:00–16:00" };
 // 包一層，統一套用時段覆寫，避免每個呼叫端各自處理
 function classify(raw) {
   const r = classifyRaw(raw);
-  const t = CODE_TIME[String(raw==null?"":raw).trim()];
+  const t = codeLookup(CODE_TIME, raw);
   return t ? Object.assign({}, r, { time:t }) : r;
 }
 // 假日白班分組代碼。115-10 起科內把「A8-4」改寫成「A84*」，兩種寫法都要認得。
@@ -1037,8 +1041,8 @@ function classifyRaw(raw) {
 // 時段代碼（依 classify 類型）：早班/8-4=XJ、白班=H2、小夜=XD、大夜=XF
 const TIMECODE = { early:"XJ", eight:"XJ", normal:"H2", small:"XD", big:"XF" };
 // 依試算表，這兩個班別有自己的考勤代碼，不隨 classify 類型走
-const CODE_TIMECODE = { "肺*":"HJ", "ACLS":"HP", "HP":"HP" };
-const tcOf = (code, t) => CODE_TIMECODE[String(code==null?"":code).trim()] || TIMECODE[t];
+const CODE_TIMECODE = { "肺*":"HJ", "ACLS*":"HP", "ACLS":"HP", "HP":"HP" };
+const tcOf = (code, t) => codeLookup(CODE_TIMECODE, code) || TIMECODE[t];
 const tcSuffix = (code, t) => { const c = tcOf(code, t); return c ? `（${c}）` : ""; };
 // 班別標籤一律單行：依「字寬單位」分級縮字（全形算 2、半形算 1），
 // 手機格內文字空間約 40px。折行會讓同一列的標籤高低不一，改用縮字保持整個網格對齊。
@@ -1106,14 +1110,14 @@ const HOLIDAY_DAY = {
   C:{area:"CVCU（30）＋RCC（12）＋POR A.B.C＋ER 病房",     clean:"協助擦機器"},
   D:{area:"RICU（20）＋二醫病房＋NICU（18）＋PICU（15）",   clean:"協助擦機器"},
 };
-const ACTIVITY = /^(品營日|機器日|儀器日|資訊日|兒醫日|教學日|ACLS|HP)$/;
+const ACTIVITY = /^(?:品營日|機器日|儀器日|資訊日|兒醫日|教學日|ACLS|HP)\*?$/;
 
 // 以灰色呈現的班別。兩種情形：
-//   1. 非臨床人力（不當人力）：ACLS、公務日（教/品/儀/資/兒、機器日）、體檢/喪/產、清*
-//   2. 考勤代碼不屬於圖例五色（XJ / H2 / XD / XF）：肺*（HJ）、ACLS（HP）
+//   1. 非臨床人力（不當人力）：ACLS*、公務日（教/品/儀/資/兒、機器日）、體檢/喪/產、清*
+//   2. 考勤代碼不屬於圖例五色（XJ / H2 / XD / XF）：肺*（HJ）、ACLS*（HP）
 // 休/國/V/例/病/公/補休/L+查 在 classify 已歸為 rest，本來就是灰的。
 // 只換顏色，不動 type/cat —— 統計與本日出勤的分區邏輯維持原樣。
-const GREY_CODES = /^(ACLS|HP|品營日|機器日|儀器日|資訊日|兒醫日|教學日|體檢|喪|產|清\*|肺\*|L(\+|＋)查)$/;
+const GREY_CODES = /^(?:(?:ACLS|HP|品營日|機器日|儀器日|資訊日|兒醫日|教學日|體檢)\*?|喪|產|清\*|肺\*|L(?:\+|＋)查)$/;
 const colorType = (code, type) => GREY_CODES.test(String(code==null?"":code).trim()) ? "rest" : type;
 
 // ─────────────────────────────────────────────
@@ -1135,7 +1139,7 @@ const CODE_GUIDE = [
     rule:"排班者依照夜班順位階梯式安排，初始班表為該區域三天小夜，接三天大夜，小夜前一天休假，以及大夜後兩天休假為原則，D 組安排六天小夜，小夜前後一天休假為原則。" },
   { codes:"肺*", att:"HJ", time:"08:00–17:00", clinical:true,
     rule:"除鄭雅華歸屬胸腔感染科，其餘同仁依照自願與面試結果輪訓，每次輪訓半年。" },
-  { codes:"ACLS", att:"HP", time:"08:00–16:00", clinical:false,
+  { codes:"ACLS*", att:"HP", time:"08:00–16:00", clinical:false,
     rule:"ACLS 屬評鑑要求，本科同仁皆應擁有效期內之 ACLS 證照，排班者自行調整班別，使人員能參與院內課程（ACLS 兩日課程可得 3 年效期，效期滿後可參加一日課程複訓，得延長 2 年效期，限一次）。" },
   { codes:"V", att:"H2", time:"08:00–17:30", clinical:false,
     rule:"A. 當 V 為年度長假時，排班者依長假預約系統，呈現預約成功同仁的 V 在初始班表，若長假遇到夜班段落，排班者須提前讓長假預約者去跟其他同仁協調換夜班段落；長假前後原則上給周末放假，但若遇三天以上之連假，不保證能給前後之周末（可能要上周末值班）\nB. 大夜班後第二天之休假，若已超過當月應放天數，排班者得以在初始班表先安排 V，同仁可以斟酌自願放棄，改成出勤。\nC. 同仁在初始班表後若抽到 OFF，可自行選擇使用 V 或補休，應告知排班者。\nD. 當無人有意願放假時，排班者得依照剩餘放假天數，平均分配使用特休。\nE. 特休可保留至下年度，但下一年度須先休完保留天數，再計算當年度 10 天，才可請領國旅卡額度（< 10 天之同仁，若未休完，不得請領國旅卡額度）。" },
